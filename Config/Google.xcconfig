@@ -1,0 +1,4 @@
+// Set the iOS client ID (also used by Google's native macOS SDK) in Local.xcconfig.
+GOOGLE_CLIENT_ID =
+GOOGLE_REVERSED_CLIENT_ID = com.example.greminder.oauth
+#include? "Local.xcconfig"

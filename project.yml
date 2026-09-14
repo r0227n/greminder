@@ -1,0 +1,112 @@
+name: Greminder
+options:
+  bundleIdPrefix: com.example
+  developmentLanguage: en
+  knownRegions: [en, ja]
+  deploymentTarget:
+    iOS: "26.0"
+    macOS: "26.0"
+packages:
+  GreminderKit:
+    path: .
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    GENERATE_INFOPLIST_FILE: YES
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: 1
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CODE_SIGN_STYLE: Automatic
+targets:
+  Greminder-iOS:
+    type: application
+    productName: greminder
+    platform: iOS
+    sources:
+      - Greminder/App
+      - path: Greminder/Resources/AppLocalizations
+        buildPhase: resources
+    dependencies:
+      - package: GreminderKit
+    configFiles:
+      Debug: Config/Google.xcconfig
+      Release: Config/Google.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.greminder.ios
+        PRODUCT_NAME: greminder
+        PRODUCT_MODULE_NAME: Greminder
+        TARGETED_DEVICE_FAMILY: "1,2"
+    info:
+      path: Greminder/Resources/iOS-Info.plist
+      properties:
+        CFBundleDisplayName: greminder
+        CFBundleLocalizations: [en, ja]
+        NSMicrophoneUsageDescription: greminder uses the microphone to transcribe audio on this device and enter tasks.
+        GIDClientID: $(GOOGLE_CLIENT_ID)
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [$(GOOGLE_REVERSED_CLIENT_ID)]
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+  Greminder-macOS:
+    type: application
+    productName: greminder
+    platform: macOS
+    sources:
+      - Greminder/App
+      - path: Greminder/Resources/AppLocalizations
+        buildPhase: resources
+    dependencies:
+      - package: GreminderKit
+    configFiles:
+      Debug: Config/Google.xcconfig
+      Release: Config/Google.xcconfig
+    entitlements:
+      path: Greminder/Resources/Greminder-macOS.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.device.audio-input: true
+        keychain-access-groups: [$(AppIdentifierPrefix)$(CFBundleIdentifier)]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.greminder.macos
+        PRODUCT_NAME: greminder
+        PRODUCT_MODULE_NAME: Greminder
+        ENABLE_APP_SANDBOX: YES
+        ENABLE_OUTGOING_NETWORK_CONNECTIONS: YES
+    info:
+      path: Greminder/Resources/macOS-Info.plist
+      properties:
+        CFBundleDisplayName: greminder
+        CFBundleLocalizations: [en, ja]
+        NSMicrophoneUsageDescription: greminder uses the microphone to transcribe audio on this device and enter tasks.
+        GIDClientID: $(GOOGLE_CLIENT_ID)
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [$(GOOGLE_REVERSED_CLIENT_ID)]
+        LSApplicationCategoryType: public.app-category.productivity
+  Greminder-SpeechTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - iOSTests
+      - Tests/SpeechStorageTests.swift
+    dependencies:
+      - target: Greminder-iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.greminder.speech-tests
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/greminder.app/greminder
+schemes:
+  Greminder-iOS:
+    build:
+      targets:
+        Greminder-iOS: all
+    test:
+      targets: [Greminder-SpeechTests]
+      gatherCoverageData: false
+  Greminder-macOS:
+    build:
+      targets:
+        Greminder-macOS: all

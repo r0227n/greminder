@@ -1,0 +1,85 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+
+jobs:
+  style:
+    name: Format and lint
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned quality tools
+        run: bash scripts/install-quality-tools.sh
+      - name: Verify format and lint
+        run: bash scripts/quality.sh check
+
+  macos:
+    name: macOS build and tests
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show compiler
+        run: xcodebuild -version && swift --version
+      - name: Resolve pinned packages
+        run: swift package resolve --force-resolved-versions
+      - name: Unit and reducer tests
+        run: swift test --enable-code-coverage
+      - name: Local LLM package tests
+        run: swift test --package-path Packages/LocalLLM --enable-code-coverage
+      - name: Use the shared dependency lock for Xcode
+        run: |
+          mkdir -p Greminder.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
+          cp Package.resolved Greminder.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+      - name: Build native macOS target
+        run: >-
+          xcodebuild -project Greminder.xcodeproj -scheme Greminder-macOS
+          -destination 'platform=macOS' -derivedDataPath DerivedData/mac
+          -skipMacroValidation -disableAutomaticPackageResolution
+          CODE_SIGNING_ALLOWED=NO build
+
+  ios:
+    name: iOS simulator build
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use the shared dependency lock for Xcode
+        run: |
+          mkdir -p Greminder.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
+          cp Package.resolved Greminder.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+      - name: Build native iOS target and hosted regression tests
+        run: >-
+          xcodebuild -project Greminder.xcodeproj -scheme Greminder-iOS
+          -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData/ios
+          -skipMacroValidation -disableAutomaticPackageResolution
+          CODE_SIGNING_ALLOWED=NO build-for-testing
+
+  gate:
+    name: Quality Gate
+    if: always()
+    needs: [style, macos, ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require every check to pass
+        env:
+          STYLE: ${{ needs.style.result }}
+          MACOS: ${{ needs.macos.result }}
+          IOS: ${{ needs.ios.result }}
+        run: test "$STYLE" = success && test "$MACOS" = success && test "$IOS" = success

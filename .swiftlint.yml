@@ -1,0 +1,54 @@
+included:
+  - Greminder
+  - Tests
+  - iOSTests
+  - Packages/LocalLLM/Sources
+  - Packages/LocalLLM/Tests
+excluded:
+  - Greminder/Resources
+strict: true
+# Formatting belongs to SwiftFormat; these rules check correctness and Swift conventions.
+only_rules:
+  - array_init
+  - block_based_kvo
+  - class_delegate_protocol
+  - closing_brace
+  - collection_alignment
+  - colon
+  - comma
+  - compiler_protocol_init
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - duplicate_conditions
+  - duplicate_enum_cases
+  - duplicate_imports
+  - empty_count
+  - empty_string
+  - fatal_error_message
+  - force_cast
+  - force_try
+  - identical_operands
+  - implicitly_unwrapped_optional
+  - is_disjoint
+  - legacy_cggeometry_functions
+  - legacy_constant
+  - legacy_constructor
+  - mark
+  - no_fallthrough_only
+  - notification_center_detachment
+  - private_over_fileprivate
+  - reduce_boolean
+  - redundant_nil_coalescing
+  - implicit_optional_initialization
+  - redundant_set_access_control
+  - return_arrow_whitespace
+  - syntactic_sugar
+  - toggle_bool
+  - trailing_newline
+  - trailing_semicolon
+  - unused_closure_parameter
+  - unused_optional_binding
+  - valid_ibinspectable
+  - vertical_whitespace
+  - weak_delegate

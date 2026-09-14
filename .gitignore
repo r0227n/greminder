@@ -1,0 +1,11 @@
+.build/
+.swiftpm/
+DerivedData/
+Build/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+Config/Local.xcconfig
+.xcodebuildmcp/
+.tools/
+.swiftlint-cache/
