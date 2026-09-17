@@ -314,3 +314,9 @@
 "設定は次回起動時も保持されます。編集中・保存中は切り替えできません。" = "This setting is kept after restarting the app. Finish editing and saving before switching.";
 "サンプルホームを開く" = "Open Sample Home";
 "実APIへの切替はデバッグ画面で行えます。" = "Switch to the live API in the debug screen.";
+"アカウントメニュー" = "Account menu";
+"アカウント" = "Account";
+"ログイン中のアカウント" = "Signed-in account";
+"ログインしていません" = "Not signed in";
+"ログアウト" = "Sign out";
+"編集中・保存中の操作を完了してからアカウントを変更してください。" = "Finish editing and saving before changing accounts.";

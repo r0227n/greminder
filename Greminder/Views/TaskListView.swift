@@ -105,9 +105,6 @@ struct TaskListView: View {
         #endif
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
-                    #if DEBUG
-                        DebugToolsButton(store: store)
-                    #endif
                     Button { store.send(.openVoice(.task)) } label: { Image(systemName: "mic") }
                         .help(L10n.tr("音声でタスクを入力")).accessibilityLabel(L10n.tr("音声でタスクを入力"))
                         .disabled(store.showsVoice)
@@ -137,7 +134,6 @@ struct TaskListView: View {
                     Menu {
                         Button(L10n.tr("再読み込み"), systemImage: "arrow.clockwise") { store.send(.reload) }
                             .disabled(!store.pending.isEmpty)
-                        Button(L10n.tr("設定"), systemImage: "gearshape") { store.showsSettings = true }
                     } label: { Image(systemName: "ellipsis.circle") }.accessibilityLabel(L10n.tr("その他"))
                 }
             }

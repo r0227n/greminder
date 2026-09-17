@@ -27,6 +27,13 @@ struct AppFeature {
         var isLoading = false
         var reloadAfterWrites = false
         var account: String?
+        var googleAccount: GoogleAccountProfile?
+        var accountMenuSource: String?
+        var signedInAccounts: [GoogleAccountProfile] {
+            if let googleAccount { return [googleAccount] }
+            return account.map { [GoogleAccountProfile(id: $0, email: $0, name: "")] } ?? []
+        }
+
         var isSignedIn: Bool { account != nil }
         var showsSampleTasks = false
         var usesMockAPI = false
@@ -105,6 +112,8 @@ struct AppFeature {
         case appeared
         case setSampleMode(Bool)
         case setUsesMockAPI(Bool)
+        case signInAccount
+        case signOutAccount
         case apiModeChanged(Bool, Result<ConnectedTasks, AppFailure>)
         case displayLanguageChanged(DisplayLanguage)
         case reload
@@ -269,6 +278,7 @@ struct AppFeature {
                 let cancellation = cancelAI(&state)
                 state.snapshot = data.snapshot
                 state.account = data.account
+                state.googleAccount = data.googleAccount
                 if data.account == nil { state.showsSettings = false }
                 state.error = nil
                 state.proposalBatch = nil
@@ -515,20 +525,23 @@ struct AppFeature {
                 state.isLoading = false
                 state.error = nil
                 return .none
-            case .connect, .disconnect:
+            case .connect, .disconnect, .signInAccount, .signOutAccount:
                 guard state.canSwitchAccount else { return .none }
-                if state.usesMockAPI {
+                let managesAccount = action.is(\.signInAccount) || action.is(\.signOutAccount)
+                if state.usesMockAPI, !managesAccount {
                     state.showsSampleTasks = true
                     return .send(.reload)
                 }
                 state.isLoading = true
                 state.error = nil
-                let connect = { if case .connect = action { return true }
-                    return false
-                }()
+                let connect = action.is(\.connect) || action.is(\.signInAccount)
                 return .run { send in
                     do {
-                        let data = try await connect ? tasks.connect() : tasks.disconnect()
+                        let data: ConnectedTasks = if managesAccount {
+                            try await connect ? tasks.signInAccount() : tasks.signOutAccount()
+                        } else {
+                            try await connect ? tasks.connect() : tasks.disconnect()
+                        }
                         await send(.loaded(.success(data)))
                     } catch {
                         let nsError = error as NSError

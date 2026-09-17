@@ -1,5 +1,4 @@
 import ComposableArchitecture
-import GoogleSignInSwift
 import SwiftUI
 
 struct SettingsView: View {
@@ -18,32 +17,6 @@ struct SettingsView: View {
                     }.accessibilityIdentifier("display-language")
                     Text(L10n.tr("音声認識の言語は「音声入力」で別に設定できます。"))
                         .font(.caption).foregroundStyle(.secondary)
-                }
-                Section("Google Tasks") {
-                    if let account = store.account {
-                        Label(account, systemImage: "person.crop.circle")
-                        Button(L10n.tr("サインアウト")) { store.send(.disconnect) }.disabled(!store.canSwitchAccount)
-                    } else if store.usesMockAPI {
-                        Text(L10n.tr("現在はサンプルデータを使用しています。変更はこのデバイスに保存されます。"))
-                        Text(L10n.tr("実APIへの切替はデバッグ画面で行えます。"))
-                            .font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        Text(L10n.tr("Google Tasks APIに接続します。未ログインの場合はログインが必要です。"))
-                        if TasksEnvironment.isConfigured {
-                            GoogleSignInButton { store.send(.connect) }.disabled(!store.canSwitchAccount)
-                        } else {
-                            Label(L10n.tr("Google接続は初期設定が必要です"), systemImage: "wrench.and.screwdriver")
-                                .foregroundStyle(.secondary)
-                            Text(L10n.tr("プロジェクトの docs/google-setup.md に設定手順があります。設定後にGoogleへのサインインが利用できます。"))
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    if !store.pending.isEmpty { Text(L10n.tr(
-                        "保存待ちの変更が%@件あります。",
-                        String(describing: store.pending.count),
-                    )).foregroundStyle(.orange) }
-                    if store.isLoading { ProgressView() }
-                    if let error = store.error { Text(error).foregroundStyle(.red).font(.caption) }
                 }
                 Section(L10n.tr("端末内AI")) {
                     Label(

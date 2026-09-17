@@ -55,10 +55,6 @@ struct LoginView: View {
                     }
                 }
 
-                #if DEBUG
-                    DebugToolsButton(store: store)
-                #endif
-
                 Text(L10n.tr("ログイン時に、Google Tasksへのアクセスを許可してください。"))
                     .font(.footnote).foregroundStyle(.secondary)
             }

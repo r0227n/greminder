@@ -3,18 +3,6 @@
     import SwiftUI
     import UserNotifications
 
-    struct DebugToolsButton: View {
-        @Bindable var store: StoreOf<AppFeature>
-
-        var body: some View {
-            Button { store.showsDebug = true } label: {
-                Label(L10n.tr("デバッグ"), systemImage: "ladybug")
-            }
-            .help(L10n.tr("デバッグ"))
-            .accessibilityIdentifier("debug-tools-open")
-        }
-    }
-
     struct DebugToolsView: View {
         let store: StoreOf<AppFeature>
         @Environment(\.dismiss) private var dismiss
@@ -155,6 +143,7 @@
                         Button(L10n.tr("編集を取り消して閉じる")) {
                             store.send(.cancelEditor)
                             store.showsDebug = false
+                            store.accountMenuSource = nil
                         }
                         .accessibilityIdentifier("debug-cancel-edit")
                     }

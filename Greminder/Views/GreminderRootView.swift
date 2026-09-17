@@ -36,6 +36,12 @@ public struct GreminderRootView: View {
                 LoginView(store: store)
             }
         }
+        .sheet(isPresented: Binding(
+            get: { store.accountMenuSource != nil },
+            set: { if !$0 { store.accountMenuSource = nil } },
+        ), onDismiss: { store.send(.notificationPresentationDismissed) }) {
+            AccountMenuView(store: store)
+        }
         #if DEBUG
         .sheet(isPresented: $store.showsDebug, onDismiss: { store.send(.notificationPresentationDismissed) }) {
                 DebugToolsView(store: store)
@@ -49,6 +55,7 @@ public struct GreminderRootView: View {
                 }
             }
             .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
+            .onChange(of: showsHome) { _, _ in store.accountMenuSource = nil }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .background, store.showsVoice { store.send(.closeVoice) }
                 if phase == .active, showsHome { store.send(.foreground) }
@@ -87,7 +94,8 @@ public struct GreminderRootView: View {
                 #if DEBUG
                     if store.showsDebug { return false }
                 #endif
-                return store.pendingNotificationKey == nil && !store.notifications.conflicts.isEmpty && !store
+                return store.accountMenuSource == nil && store.pendingNotificationKey == nil && !store.notifications
+                    .conflicts.isEmpty && !store
                     .showsSettings && !store.showsVoice && !store
                     .showsNewList && !showsDetailModal
             },
@@ -220,30 +228,10 @@ struct TaskSidebar: View {
                 }
                 .padding(.horizontal, 16).padding(.vertical, 10)
             }
-            if !searchFocused {
-                VStack(spacing: 14) {
-                    Button { store.showsSettings = true } label: {
-                        HStack(spacing: 9) {
-                            Image(systemName: store.account == nil ? "externaldrive" : "arrow.triangle.2.circlepath")
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(store.account == nil ? L10n.tr("サンプルデータ") : "Google Tasks")
-                                Text(store.writeFailed ? L10n.tr("未保存の変更あり") : store.isSaving ? L10n.tr("保存中…") : store
-                                    .account == nil ? L10n.tr("このデバイスに保存") : L10n.tr("接続済み"))
-                                    .font(.caption2)
-                            }
-                            Spacer()
-                            Image(systemName: "gearshape").font(.system(size: 14))
-                        }.foregroundStyle(.secondary).font(.system(size: 12))
-                    }.buttonStyle(.plain)
-                }.padding(22)
-            }
         }
         .background(AppTheme.sidebar)
         .navigationTitle(L10n.tr("リスト"))
         .toolbar {
-            #if DEBUG
-                ToolbarItem(placement: .primaryAction) { DebugToolsButton(store: store) }
-            #endif
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     store.showsSearch.toggle()
@@ -255,6 +243,9 @@ struct TaskSidebar: View {
                     .accessibilityLabel(L10n.tr("タスクを検索"))
                     .accessibilityIdentifier("home-search-toggle")
             }
+            ToolbarSpacer(.fixed, placement: .primaryAction)
+            ToolbarItem(placement: .primaryAction) { AccountMenuButton(store: store, source: "sidebar") }
+                .sharedBackgroundVisibility(.hidden)
         }
         .onDisappear { searchFocused = false }
     }

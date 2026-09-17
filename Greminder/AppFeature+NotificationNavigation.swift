@@ -12,8 +12,10 @@ extension AppFeature {
             guard state.canNavigateToTasks else { return .none }
             // A sheet's onDismiss resumes navigation after its dismissal animation.
             var dismissingSheet = state.showsSettings || state.showsNewList || state.showsVoice
+                || state.accountMenuSource != nil
                 || (!state.notifications.conflicts.isEmpty && !state.showsTaskDetails)
             state.showsSettings = false
+            state.accountMenuSource = nil
             state.showsNewList = false
             state.deleteCandidate = nil
             #if DEBUG
@@ -37,6 +39,7 @@ extension AppFeature {
             }
             guard state.canNavigateToTasks else { return .none }
             guard let key = state.pendingNotificationKey, !state.isLoading, !state.waitsForNotificationDismissal,
+                  state.accountMenuSource == nil,
                   !state.showsSettings, !state.showsNewList, !state.showsVoice else { return .none }
             #if DEBUG
                 guard !state.showsDebug else { return .none }
