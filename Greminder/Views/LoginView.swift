@@ -25,17 +25,24 @@ struct LoginView: View {
                 }
 
                 VStack(spacing: 18) {
-                    GoogleSignInButton(scheme: colorScheme == .dark ? .dark : .light) {
-                        store.send(.connect)
+                    if store.usesMockAPI {
+                        Button(L10n.tr("サンプルホームを開く")) { store.send(.connect) }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(!store.canSwitchAccount)
+                            .accessibilityIdentifier("mock-sign-in")
+                    } else {
+                        GoogleSignInButton(scheme: colorScheme == .dark ? .dark : .light) {
+                            store.send(.connect)
+                        }
+                        .frame(maxWidth: 320)
+                        .disabled(store.isLoading || !store.canSwitchAccount || !TasksEnvironment.isConfigured)
+                        .accessibilityIdentifier("google-sign-in")
                     }
-                    .frame(maxWidth: 320)
-                    .disabled(store.isLoading || !store.canSwitchAccount || !TasksEnvironment.isConfigured)
-                    .accessibilityIdentifier("google-sign-in")
 
                     if store.isLoading {
                         ProgressView(L10n.tr("アカウントを確認中…"))
                             .accessibilityIdentifier("login-progress")
-                    } else if !TasksEnvironment.isConfigured {
+                    } else if !store.usesMockAPI, !TasksEnvironment.isConfigured {
                         Text(L10n.tr("Googleログインは準備中です。設定が完了すると利用できます。"))
                             .font(.callout).foregroundStyle(.secondary)
                     }

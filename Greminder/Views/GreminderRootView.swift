@@ -18,7 +18,8 @@ public struct GreminderRootView: View {
     public init() {
         var state = AppFeature.State()
         #if DEBUG
-            state.showsSampleTasks = ProcessInfo.processInfo.arguments.contains("--design-preview")
+            state.usesMockAPI = TasksAPISettings.initialUsesMockAPI
+            state.showsSampleTasks = state.usesMockAPI
         #endif
         _store = State(initialValue: Store(initialState: state) { AppFeature() })
     }

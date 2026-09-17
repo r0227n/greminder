@@ -29,6 +29,7 @@ struct AppFeature {
         var account: String?
         var isSignedIn: Bool { account != nil }
         var showsSampleTasks = false
+        var usesMockAPI = false
         var canNavigateToTasks: Bool { isSignedIn || showsSampleTasks }
         var error: String?
         var message: String?
@@ -103,6 +104,8 @@ struct AppFeature {
         case resumeNotificationNavigation
         case appeared
         case setSampleMode(Bool)
+        case setUsesMockAPI(Bool)
+        case apiModeChanged(Bool, Result<ConnectedTasks, AppFailure>)
         case displayLanguageChanged(DisplayLanguage)
         case reload
         case loaded(Result<ConnectedTasks, AppFailure>)
@@ -206,6 +209,31 @@ struct AppFeature {
                       !state.isThinking else { return .none }
                 return .send(.reload)
             case .notificationTapped, .resumeNotificationNavigation, .notificationPresentationDismissed: return .none
+            case let .setUsesMockAPI(enabled):
+                guard enabled != state.usesMockAPI, state.canSwitchAccount else { return .none }
+                state.isLoading = true
+                state.error = nil
+                return .run { send in
+                    await send(.apiModeChanged(enabled, Result {
+                        try await tasks.setUsesMockAPI(enabled)
+                    }.mapError(AppFailure.init)))
+                }
+            case let .apiModeChanged(enabled, .success(data)):
+                state.usesMockAPI = enabled
+                state.showsSampleTasks = enabled
+                state.pendingNotificationKey = nil
+                state.waitsForNotificationDismissal = false
+                state.selection = .today
+                state.search = ""
+                state.showsSearch = false
+                state.collapsed = []
+                state.deleteCandidate = nil
+                state.message = nil
+                return .send(.loaded(.success(data)))
+            case let .apiModeChanged(_, .failure(error)):
+                state.isLoading = false
+                state.error = error.message
+                return .none
             case let .setSampleMode(enabled):
                 guard !state.isSignedIn, state.canSwitchAccount else { return .none }
                 state.showsSampleTasks = enabled
@@ -489,6 +517,10 @@ struct AppFeature {
                 return .none
             case .connect, .disconnect:
                 guard state.canSwitchAccount else { return .none }
+                if state.usesMockAPI {
+                    state.showsSampleTasks = true
+                    return .send(.reload)
+                }
                 state.isLoading = true
                 state.error = nil
                 let connect = { if case .connect = action { return true }

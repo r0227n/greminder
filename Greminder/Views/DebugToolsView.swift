@@ -22,6 +22,24 @@
         var body: some View {
             NavigationStack {
                 List {
+                    Section {
+                        Toggle(L10n.tr("モックAPIを使用"), isOn: Binding(
+                            get: { store.usesMockAPI },
+                            set: { store.send(.setUsesMockAPI($0)) },
+                        ))
+                        .disabled(!store.canSwitchAccount)
+                        .accessibilityIdentifier("debug-use-mock-api")
+                        Text(store.usesMockAPI
+                            ? L10n.tr("SDKのtestBlockでリクエストを処理します。Googleへの通信は行いません。")
+                            : L10n.tr("Google Tasks APIに接続します。未ログインの場合はログインが必要です。"))
+                            .font(.caption).foregroundStyle(.secondary)
+                        if store.isLoading { ProgressView(L10n.tr("読み込み中…")) }
+                        if let error = store.error { Text(error).foregroundStyle(.red) }
+                    } header: {
+                        Text(L10n.tr("API接続先"))
+                    } footer: {
+                        Text(L10n.tr("設定は次回起動時も保持されます。編集中・保存中は切り替えできません。"))
+                    }
                     Section(L10n.tr("機能のデバッグ")) {
                         NavigationLink {
                             DebugNotificationsView(store: store)
@@ -72,7 +90,7 @@
                         get: { store.showsSampleTasks },
                         set: { store.send(.setSampleMode($0)) },
                     ))
-                    .disabled(store.isSignedIn || !store.canSwitchAccount)
+                    .disabled(!store.usesMockAPI || store.isSignedIn || !store.canSwitchAccount)
                     .accessibilityIdentifier("debug-sample-mode")
                     Text(L10n.tr("未ログインでの確認: タスクの通知を予約し、サンプルホームをオフにして画面を閉じ、届いた通知をタップします。"))
                         .font(.caption).foregroundStyle(.secondary)

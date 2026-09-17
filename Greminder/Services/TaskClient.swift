@@ -20,6 +20,9 @@ struct TaskClient: Sendable {
     var addList: @Sendable (String, ListAppearance) async throws -> TaskList
     var connect: @Sendable () async throws -> ConnectedTasks
     var disconnect: @Sendable () async throws -> ConnectedTasks
+    var setUsesMockAPI: @Sendable (Bool) async throws -> ConnectedTasks = { _ in
+        throw AppFailure("setUsesMockAPI dependency must be supplied")
+    }
 }
 
 extension TaskClient: DependencyKey {
@@ -30,6 +33,7 @@ extension TaskClient: DependencyKey {
         addList: { try await TasksEnvironment.shared.client.addList($0, appearance: $1) },
         connect: { try await TasksEnvironment.shared.connect() },
         disconnect: { try await TasksEnvironment.shared.disconnect() },
+        setUsesMockAPI: { try await TasksEnvironment.shared.setUsesMockAPI($0) },
     )
     static let testValue = Self(
         load: { throw AppFailure("load dependency must be supplied") },
@@ -60,11 +64,14 @@ struct TasksAccountConnection {
 final class TasksEnvironment {
     static let shared = TasksEnvironment()
     private(set) var client: GoogleTasksService
+    private(set) var usesMockAPI: Bool
     private let demo: GoogleTasksService
     private let initializationError: Error?
     private let restoreAccount: @MainActor () async throws -> TasksAccountConnection?
     private let signIn: @MainActor () async throws -> TasksAccountConnection
     private let signOut: @MainActor () -> Void
+    private let saveAPIMode: @MainActor (Bool) -> Void
+    private var liveConnection: TasksAccountConnection?
     private var account: String?
     private var didRestore = false
 
@@ -78,12 +85,16 @@ final class TasksEnvironment {
 
     init(
         demo: GoogleTasksService,
+        usesMockAPI: Bool = false,
+        saveAPIMode: @escaping @MainActor (Bool) -> Void = { _ in },
         initializationError: Error? = nil,
         restoreAccount: @escaping @MainActor () async throws -> TasksAccountConnection? = { nil },
         signIn: @escaping @MainActor () async throws -> TasksAccountConnection,
         signOut: @escaping @MainActor () -> Void = {},
     ) {
         self.demo = demo
+        self.usesMockAPI = usesMockAPI
+        self.saveAPIMode = saveAPIMode
         client = demo
         self.initializationError = initializationError
         self.restoreAccount = restoreAccount
@@ -104,6 +115,8 @@ final class TasksEnvironment {
         } catch { initializationError = error }
         self.init(
             demo: GoogleTasksService(service: service, appearances: appearances),
+            usesMockAPI: TasksAPISettings.initialUsesMockAPI,
+            saveAPIMode: { TasksAPISettings(defaults: .standard).save($0) },
             initializationError: initializationError,
             restoreAccount: {
                 guard !isPreview, Self.isConfigured, GIDSignIn.sharedInstance.hasPreviousSignIn() else { return nil }
@@ -118,32 +131,60 @@ final class TasksEnvironment {
     }
 
     func load() async throws -> ConnectedTasks {
+        if usesMockAPI {
+            return try await ConnectedTasks(snapshot: loadSnapshot(from: demo))
+        }
         if !didRestore, let restored = try await restoreAccount() {
             return try await activate(restored)
         }
-        let snapshot = try await loadSnapshot(from: client)
+        let snapshot = account == nil ? TaskSnapshot() : try await loadSnapshot(from: client)
         didRestore = true
         return ConnectedTasks(snapshot: snapshot, account: account)
     }
 
     func connect() async throws -> ConnectedTasks {
-        try await activate(signIn())
+        if usesMockAPI { return try await load() }
+        return try await activate(signIn())
     }
 
     func disconnect() async throws -> ConnectedTasks {
-        // Prepare the destination before invalidating the current account's credentials.
-        let snapshot = try await loadSnapshot(from: demo)
+        if usesMockAPI { return try await load() }
         signOut()
+        liveConnection = nil
         client = demo
         account = nil
         didRestore = true
-        return ConnectedTasks(snapshot: snapshot, account: nil)
+        return ConnectedTasks(snapshot: TaskSnapshot(), account: nil)
+    }
+
+    func setUsesMockAPI(_ enabled: Bool) async throws -> ConnectedTasks {
+        guard enabled != usesMockAPI else { return try await load() }
+        // Load first: failures must leave both the transport and the saved preference unchanged.
+        let connection: TasksAccountConnection = if enabled {
+            TasksAccountConnection(client: demo, account: nil)
+        } else if let previous = liveConnection {
+            previous
+        } else if let restored = try await restoreAccount() {
+            restored
+        } else {
+            TasksAccountConnection(client: demo, account: nil)
+        }
+        let snapshot = !enabled && connection.account == nil
+            ? TaskSnapshot() : try await loadSnapshot(from: connection.client)
+        client = connection.client
+        account = connection.account
+        usesMockAPI = enabled
+        didRestore = true
+        if !enabled { liveConnection = connection.account == nil ? nil : connection }
+        saveAPIMode(enabled)
+        return ConnectedTasks(snapshot: snapshot, account: account)
     }
 
     private func activate(_ connection: TasksAccountConnection) async throws -> ConnectedTasks {
         let snapshot = try await loadSnapshot(from: connection.client)
         client = connection.client
         account = connection.account
+        liveConnection = connection
         didRestore = true
         return ConnectedTasks(snapshot: snapshot, account: account)
     }

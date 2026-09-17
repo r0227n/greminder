@@ -307,3 +307,10 @@
 "入力文字数: %@" = "Characters: %@";
 "編集を取り消して閉じる" = "Cancel editing and close";
 "通知を予約しました。%@秒後に通知されます。" = "Notification scheduled for %@ seconds from now.";
+"モックAPIを使用" = "Use Mock API";
+"SDKのtestBlockでリクエストを処理します。Googleへの通信は行いません。" = "Requests run through the SDK testBlock. No requests are sent to Google.";
+"Google Tasks APIに接続します。未ログインの場合はログインが必要です。" = "Connect to the Google Tasks API. Sign in if you are not already signed in.";
+"API接続先" = "API Connection";
+"設定は次回起動時も保持されます。編集中・保存中は切り替えできません。" = "This setting is kept after restarting the app. Finish editing and saving before switching.";
+"サンプルホームを開く" = "Open Sample Home";
+"実APIへの切替はデバッグ画面で行えます。" = "Switch to the live API in the debug screen.";

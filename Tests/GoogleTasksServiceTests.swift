@@ -28,17 +28,12 @@ final class GoogleTasksServiceTests: XCTestCase {
         XCTAssertEqual(connected.account, "user@example.com")
         XCTAssertTrue(environment.client === account)
 
+        // Signing out in real API mode must not issue fallback requests to the mock server.
         demoServer.failNextRequest = AppFailure("sample unavailable")
-        do {
-            _ = try await environment.disconnect()
-            XCTFail("A failed destination load must not sign out the active account")
-        } catch { XCTAssertEqual(error.localizedDescription, "sample unavailable") }
-        XCTAssertEqual(signOutCount, 0)
-        XCTAssertTrue(environment.client === account)
-        let stillConnected = try await environment.load()
-        XCTAssertEqual(stillConnected.account, connected.account)
         let disconnected = try await environment.disconnect()
         XCTAssertNil(disconnected.account)
+        XCTAssertTrue(disconnected.snapshot.tasks.isEmpty)
+        XCTAssertTrue(demoServer.requestedQueries.isEmpty)
         XCTAssertEqual(signOutCount, 1)
         XCTAssertTrue(environment.client === demo)
     }

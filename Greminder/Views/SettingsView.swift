@@ -23,8 +23,12 @@ struct SettingsView: View {
                     if let account = store.account {
                         Label(account, systemImage: "person.crop.circle")
                         Button(L10n.tr("サインアウト")) { store.send(.disconnect) }.disabled(!store.canSwitchAccount)
-                    } else {
+                    } else if store.usesMockAPI {
                         Text(L10n.tr("現在はサンプルデータを使用しています。変更はこのデバイスに保存されます。"))
+                        Text(L10n.tr("実APIへの切替はデバッグ画面で行えます。"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text(L10n.tr("Google Tasks APIに接続します。未ログインの場合はログインが必要です。"))
                         if TasksEnvironment.isConfigured {
                             GoogleSignInButton { store.send(.connect) }.disabled(!store.canSwitchAccount)
                         } else {
