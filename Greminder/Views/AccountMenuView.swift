@@ -26,7 +26,8 @@ struct CircleAvatar: View {
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
-        .overlay(Circle().strokeBorder(.primary.opacity(0.08), lineWidth: 1))
+        // Concrete colors keep their opacity during native toolbar transitions.
+        .overlay(Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
         .accessibilityHidden(true)
     }
 }
@@ -39,7 +40,7 @@ struct AccountMenuButton: View {
         Button { store.accountMenuSource = source } label: {
             CircleAvatar(profile: store.signedInAccounts.first)
                 .frame(width: 44, height: 44)
-                .background(.primary.opacity(0.07), in: Circle())
+                .background(Color.primary.opacity(0.07), in: Circle())
                 .contentShape(Circle())
         }
         .buttonStyle(AvatarButtonStyle())
