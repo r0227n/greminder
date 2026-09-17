@@ -58,6 +58,25 @@ struct ScheduledTaskNotification: Equatable, Sendable {
     var title: String
     var listTitle: String
     var date: Date
+    var taskKey: String?
+
+    func makeRequest() -> UNNotificationRequest {
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second], from: date,
+        )
+        return makeRequest(trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false))
+    }
+
+    func makeRequest(trigger: UNNotificationTrigger) -> UNNotificationRequest {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = listTitle
+        content.sound = .default
+        if let key = taskKey ?? NotificationRouting.key(identifier: id) {
+            content.userInfo[NotificationRouting.taskKeyField] = key
+        }
+        return UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+    }
 }
 
 enum NotificationAccess: String, Equatable, Sendable {
@@ -218,12 +237,17 @@ extension DependencyValues {
 @MainActor
 final class LocalNotificationSystem: NSObject, UNUserNotificationCenterDelegate {
     static let shared = LocalNotificationSystem()
+    let responses = NotificationResponseBuffer()
     private var tail: Task<NotificationReport, Error>?
     private let preferencesKey = "greminder.notifications.v1"
     private var center: UNUserNotificationCenter {
         let center = UNUserNotificationCenter.current()
         center.delegate = self
         return center
+    }
+
+    func start() {
+        _ = center
     }
 
     func load() throws -> NotificationPreferences {
@@ -249,24 +273,10 @@ final class LocalNotificationSystem: NSObject, UNUserNotificationCenterDelegate 
             let pending = await self.center.pendingNotificationRequests()
             let desired = access == .authorized ? Array(requests.prefix(60)) : []
             let desiredIDs = Set(desired.map(\.id))
-            self.center
-                .removePendingNotificationRequests(withIdentifiers: pending.map(\.identifier)
-                    .filter { $0.hasPrefix("greminder.task.") && !desiredIDs.contains($0) })
+            self.cancelRequests(withIdentifiers: pending.map(\.identifier)
+                .filter { $0.hasPrefix("greminder.task.") && !desiredIDs.contains($0) })
             for request in desired {
-                let content = UNMutableNotificationContent()
-                content.title = request.title
-                content.body = request.listTitle
-                content.sound = .default
-                let components = Calendar.current.dateComponents(
-                    [.year, .month, .day, .hour, .minute],
-                    from: request.date,
-                )
-                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-                try await self.center.add(UNNotificationRequest(
-                    identifier: request.id,
-                    content: content,
-                    trigger: trigger,
-                ))
+                try await self.schedule(request)
             }
             return NotificationReport(access: access, scheduled: desired.count, deferred: max(0, requests.count - 60))
         }
@@ -274,12 +284,43 @@ final class LocalNotificationSystem: NSObject, UNUserNotificationCenterDelegate 
         return try await task.value
     }
 
-    private func access() async -> NotificationAccess {
+    func pendingRequests() async -> [UNNotificationRequest] {
+        await center.pendingNotificationRequests()
+    }
+
+    func cancelRequests(withIdentifiers identifiers: [String]) {
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    func schedule(_ notification: ScheduledTaskNotification) async throws {
+        guard await access() == .authorized else {
+            throw AppFailure(L10n.tr("システム設定で通知を許可してください"))
+        }
+        try await center.add(notification.makeRequest())
+    }
+
+    func access() async -> NotificationAccess {
         switch await center.notificationSettings().authorizationStatus {
         case .authorized, .provisional, .ephemeral: .authorized
         case .denied: .denied
         case .notDetermined: .notDetermined
         @unknown default: .unavailable
+        }
+    }
+
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void,
+    ) {
+        let key = NotificationRouting.key(
+            request: response.notification.request, actionIdentifier: response.actionIdentifier,
+        )
+        // UIKit's background restoration completion must run on the main thread.
+        // The async delegate bridge can otherwise resume it on a cooperative thread.
+        Task { @MainActor in
+            if let key { self.responses.receive(key) }
+            completionHandler()
         }
     }
 

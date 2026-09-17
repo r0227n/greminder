@@ -1,9 +1,27 @@
 import ComposableArchitecture
 @testable import GreminderKit
+import UserNotifications
 import XCTest
 
 @MainActor
 final class NotificationTests: XCTestCase {
+    func testNotificationRequestPreservesContentAndTrigger() throws {
+        let notification = ScheduledTaskNotification(
+            id: "greminder.task.test", title: "Reminder", listTitle: "Work", date: Date(),
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: DateComponents(hour: 9), repeats: false)
+        let request = notification.makeRequest(trigger: trigger)
+        XCTAssertEqual(request.identifier, notification.id)
+        XCTAssertEqual(request.content.title, notification.title)
+        XCTAssertEqual(request.content.body, notification.listTitle)
+        XCTAssertNotNil(request.content.sound)
+        XCTAssertEqual(
+            try XCTUnwrap(request.trigger as? UNCalendarNotificationTrigger).dateComponents,
+            trigger.dateComponents,
+        )
+        XCTAssertFalse(try XCTUnwrap(request.trigger).repeats)
+    }
+
     private let scope = NotificationPlanner.scope("test@example.com")
     private var today: TaskDay { TaskDay("2026-09-13")! }
     private var tomorrow: TaskDay { TaskDay("2026-09-14")! }

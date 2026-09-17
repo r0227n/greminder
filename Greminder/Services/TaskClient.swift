@@ -70,7 +70,10 @@ final class TasksEnvironment {
 
     static var isConfigured: Bool {
         let id = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String ?? ""
-        return id.hasSuffix(".apps.googleusercontent.com") && !id.contains("$(")
+        guard id.hasSuffix(".apps.googleusercontent.com"), !id.contains("$(") else { return false }
+        let reversedID = id.split(separator: ".").reversed().joined(separator: ".")
+        let urlTypes = Bundle.main.object(forInfoDictionaryKey: "CFBundleURLTypes") as? [[String: Any]] ?? []
+        return urlTypes.contains { ($0["CFBundleURLSchemes"] as? [String])?.contains(reversedID) == true }
     }
 
     init(

@@ -105,6 +105,9 @@ struct TaskListView: View {
         #endif
             .toolbar {
                 ToolbarItemGroup(placement: .primaryAction) {
+                    #if DEBUG
+                        DebugToolsButton(store: store)
+                    #endif
                     Button { store.send(.openVoice(.task)) } label: { Image(systemName: "mic") }
                         .help(L10n.tr("音声でタスクを入力")).accessibilityLabel(L10n.tr("音声でタスクを入力"))
                         .disabled(store.showsVoice)

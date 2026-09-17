@@ -121,7 +121,9 @@
             .onChange(of: field) { old, _ in
                 if let old, let task, old.hasPrefix(task.id + ".") { store.send(.saveDetails(task.id)) }
             }
-            .sheet(isPresented: $store.showsSettings) { SettingsView(store: store).tint(AppTheme.blue) }
+            .sheet(isPresented: $store.showsSettings, onDismiss: { store.send(.notificationPresentationDismissed) }) {
+                SettingsView(store: store).tint(AppTheme.blue)
+            }
             .confirmationDialog(L10n.tr("このタスクを削除しますか？サブタスクも削除されます。"), isPresented: Binding(
                 get: { store.deleteCandidate != nil }, set: { if !$0 { store.deleteCandidate = nil } },
             ), titleVisibility: .visible) {

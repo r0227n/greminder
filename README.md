@@ -6,7 +6,9 @@ iOS / macOS ネイティブのSwiftUI製Google Tasksクライアント。選択�
 
 - Xcode 26.3以上、iOS / macOS 26以上。
 - `Greminder.xcodeproj` を開き、`Greminder-iOS` または `Greminder-macOS` スキームを選んで実行。
-- 初回起動はサンプルモード。Googleの認証情報なしで動きます。
+- 初回起動はログイン画面。Google OAuthの設定後、ログインするとホーム画面へ遷移します。次回起動時には保存済みの認証を復元します。
+- クライアントIDの入力先は `Config/Local.xcconfig`（Git管理対象外）。共有用の空テンプレートは `Config/Local.xcconfig.example` です。
+- Debugビルドで `--design-preview` を指定すると、UI確認用のサンプルホームを開けます。
 - Macだけを素早く試す場合は `zsh scripts/package-macos.sh`。`Build/greminder.app` を起動します。このプレビューバンドルはローカルの `.build` にも依存するため、配布にはXcodeターゲットを使用してください。
 - プロジェクト定義を編集した場合は `xcodegen generate`。
 
@@ -34,10 +36,10 @@ AI入力は下部にあります。自然文から追加・予定日変更・完
 
 ## 実装
 
-- **状態管理**: [TCA](https://github.com/pointfreeco/swift-composable-architecture) 1.23.1。`AppFeature` が入力、選択、保存キュー、AI提案、エラーを管理します。SwiftUIに残る状態はネイティブ入力フォーカスだけです。
+- **状態管理**: [TCA](https://github.com/pointfreeco/swift-composable-architecture) 1.23.1。`AppFeature` が入力、選択、保存キュー、AI提案、エラーを管理します。SwiftUIに残る状態はネイティブ入力フォーカスと、デバッグ画面の表示・一時的な操作状態です。
 - **API**: [Google API Objective-C Client for REST](https://github.com/google/google-api-objectivec-client-for-rest) 5.4.0 の `GTLRTasksService` / 生成済みTasksクエリ。手書きURLSessionクライアントは使いません。
 - **サンプルとテスト**: 同じ `executeQuery` を実行し、`service.testBlock` が `ticket.originalQuery` を受け、型・パラメーター・リクエストボディに応じてSDKの応答オブジェクトを返します。Googleへのネットワーク通信は行いません。
-- **認証**: Google Sign-In 9.0.0。OAuth設定後は `fetcherAuthorizer` をサービスに渡し、testBlockなしでGoogleへ接続します。
+- **認証**: Google Sign-In 10.0.0。OAuth設定後は `fetcherAuthorizer` をサービスに渡し、testBlockなしでGoogleへ接続します。
 - **ローカルAI**: [内部LocalLLMパッケージ](Packages/LocalLLM/README.md)のクライアントにモデル名とプロンプトを渡して非同期実行します。現在はApple Foundation Modelsに対応。ID・日付・文字数・操作種別を検証してから、通常入力と共通の保存キューに渡します。WhisperKitの音声処理は独立しています。
 - **保存**: サンプルAPIの状態をApplication Support配下にJSONで原子的に保存。ライブ接続とサンプルは分離され、サンプルをGoogleに自動アップロードしません。
 - **日付**: `TaskDay` は `yyyy-MM-dd` として扱い、Googleの値はUTC午前0時表記へ変換。予定時刻をAPIの対応機能として見せません。
@@ -51,6 +53,14 @@ Large v3 TurboのSimulator実行はMac側に8 GB以上の空き容量が必要�
 設定から端末通知を有効にし、予定日のあるタスクごとに通知日時を指定できます。期限超過した端末の通知日がGoogle Tasksの予定日と異なる場合は、一覧ダイアログで端末の日付を更新するか確認します。**Google Tasksの通知時刻は公式APIで取得・変更できないため、通知時刻そのものの同期はできません。** 詳細は[SPEC.md](docs/SPEC.md)に記載しています。
 
 ## 検証
+
+Debugビルドではログイン画面またはHeaderの虫アイコンから「デバッグ」→「Push通知」を開けます。通知の許可をリクエストし、紐づけるタスクと待ち時間（5 / 15 / 30 / 60秒）を選んで「通知を予約」を押します。「状態を更新」で権限・予約状態を確認し、「テスト通知をキャンセル」で手動予約だけを取り消せます。
+
+「サンプルホームを表示」をオフにすると、未ログイン時の通知タップを確認できます。サンプルの通知は無視され、ログイン操作を妨げません。編集取消の確認では、サンプルホームをオンにして「新規タスクを編集」から1,025文字以上のタイトルを入力し、通知を予約・タップします。保留中の通知と入力状態を確認し、「編集を取り消して閉じる」を押すと通知先の詳細が開きます。`--design-preview`で起動すると保存済みのGoogleセッションを復元せず、サンプルタスクをメモリ内で操作できます。
+
+通常のタスク通知も、タップすると紐づいているタスクの詳細を開きます。アプリが終了していた場合は、起動してタスクの読み込みが完了した後に遷移します。[フォアグラウンド・バックグラウンド・終了状態での検証記録](docs/diagnostics/notification-navigation.md)を参照してください。
+
+手動予約と通常のタスク通知は、`LocalNotificationSystem.schedule` / `cancelRequests`、`ScheduledTaskNotification.makeRequest`、OSのdelegate、`AppFeature`の遷移処理を共用します。デバッグ専用の通知サービスは設けず、Releaseから除外するのは操作UIです。手動予約は別の識別子を使い、通常タスクの通知設定・予約に影響しません。APNs経由のリモートPush通知は対象外です。
 
 ```sh
 bash scripts/install-quality-tools.sh

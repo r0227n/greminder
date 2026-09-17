@@ -1,6 +1,6 @@
 # Google Tasks接続の設定
 
-初期状態ではOAuth設定なしでサンプルデータを操作できます。以下を設定すると「設定」画面にGoogleサインインボタンが表示されます。
+初期状態ではログイン画面を表示します。クライアントID未設定時はログインボタンが無効になり、設定後にGoogle OAuthでログインできます。認証と初回のタスク読み込みが成功するとホーム画面に遷移します。認証のキャンセル・失敗時はログイン画面に留まり、再試行できます。次回起動時は保存済みの認証を復元し、サインアウトするとログイン画面に戻ります。
 
 1. [Google Cloud Console](https://console.cloud.google.com/)でプロジェクトを作成し、Google Tasks APIを有効にします。
 2. Google Auth Platformでアプリ情報・対象ユーザーを設定します。テスト中は利用するGoogleアカウントをテストユーザーとして登録します。必要な追加スコープは `https://www.googleapis.com/auth/tasks` です。
@@ -8,7 +8,7 @@
    - iOS既定値: `com.example.greminder.ios`
    - macOS既定値: `com.example.greminder.macos`
    - ご自身のBundle IDに変える場合、`project.yml` の該当値も変更して `xcodegen generate` を実行します。
-4. `Config/Local.xcconfig` を作り、SDK別のクライアントIDとURLスキームを設定します。このファイルはGit管理から除外されています。
+4. 用意済みの空の `Config/Local.xcconfig` に（ファイルがない場合は `Config/Local.xcconfig.example` をコピーして）、SDK別のクライアントIDとURLスキームを設定します。このファイルはGit管理から除外されています。
 
 ```xcconfig
 GOOGLE_CLIENT_ID[sdk=iphoneos*] = IOS_CLIENT_ID.apps.googleusercontent.com
@@ -21,7 +21,7 @@ GOOGLE_REVERSED_CLIENT_ID[sdk=macosx*] = com.googleusercontent.apps.MAC_CLIENT_I
 ```
 
 5. Xcodeで各ターゲットのSigning & CapabilitiesからTeamを選択して署名します。Google認証を使う実機・MacではKeychain保存のためAppleの証明書による署名が必要です。macOSターゲットにはKeychain access groupを設定済みです。
-6. Xcodeからアプリを起動し、「設定」→Googleサインインを実行。Googleが表示するアクセス内容を確認して許可します。サンプル画面がアカウントのリストへ切り替わります。
+6. Xcodeからアプリを起動し、ログイン画面のGoogleサインインを実行。Googleが表示するアクセス内容を確認して許可します。アカウントのホーム画面へ切り替わります。
 7. 接続後、検証用リストで作成・編集・完了・予定日解除を確認し、Google Tasks側でも結果を確認してください。サンプルデータを自動転送する処理はありません。
 
 このアプリには独自の認証バックエンドがないため、サーバー用WebクライアントIDやクライアントシークレットは不要です。クライアントIDは公開識別子です。アクセストークンやリフレッシュトークンを設定ファイルへ書く必要はありません。

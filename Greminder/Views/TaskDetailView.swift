@@ -14,7 +14,7 @@ struct TaskDetailLayout: View {
                 .sheet(isPresented: Binding(
                     get: { store.showsTaskDetails },
                     set: { if !$0 { store.send(.closeDetails) } },
-                )) {
+                ), onDismiss: { store.send(.notificationPresentationDismissed) }) {
                     IOSTaskDetailSheet(store: store)
                 }
         #endif
