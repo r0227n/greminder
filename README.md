@@ -11,6 +11,7 @@ iOS / macOS ネイティブのSwiftUI製Google Tasksクライアント。選択�
 - Debugビルドではデバッグ画面の「モックAPIを使用」でサンプルホームへ切り替えられます。設定未保存の場合、`--design-preview`を指定するとモックモードで起動します。
 - Macだけを素早く試す場合は `zsh scripts/package-macos.sh`。`Build/greminder.app` を起動します。このプレビューバンドルはローカルの `.build` にも依存するため、配布にはXcodeターゲットを使用してください。
 - プロジェクト定義を編集した場合は `xcodegen generate`。
+- アプリアイコンは `Greminder/Resources/AppIcon.icon` をIcon Composerで編集。iOS / macOSで共用し、通常・ダーク表示とも白背景です。[アイコンと更新方法](design/AppIcon/README.md)
 
 Google連携は [設定手順](docs/google-setup.md) を参照してください。
 

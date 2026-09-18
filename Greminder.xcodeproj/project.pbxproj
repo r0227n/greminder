@@ -16,6 +16,8 @@
 		A2797B7C9233C090A4A30F5E /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4E8973564470EF3ADD9085B4 /* InfoPlist.strings */; };
 		C05B6461055F7CDB8295C197 /* GreminderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7330944377ED0C98FBCD856E /* GreminderApp.swift */; };
 		FC3F66BE6567DE380B340CD5 /* SpeechStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37039ED60738C37B1A12EBF4 /* SpeechStorageTests.swift */; };
+		71CB2D3F9724226E39651A2F /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9A500BEB31AA9C2C7733BDD9 /* AppIcon.icon */; };
+		88E287FD98E14F2CAF2F4C14 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9A500BEB31AA9C2C7733BDD9 /* AppIcon.icon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,6 +42,7 @@
 		9A8D02A9E8B6F5342A9A719B /* Google.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Google.xcconfig; sourceTree = "<group>"; };
 		9AD8AEDAEB5EDEE2EA0D6C62 /* Greminder-SpeechTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Greminder-SpeechTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C147757D2BEE8C2FBED120ED /* greminder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = greminder.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A500BEB31AA9C2C7733BDD9 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -122,6 +125,7 @@
 				075BC2E5BDB9D2D99CEEA761 /* Config */,
 				1A972AEB4F6F6A9EBC294D93 /* iOSTests */,
 				5648D452C0A25206883EB13B /* Packages */,
+				13AA2DED5A208CFC93338F35 /* Resources */,
 				AC441921C40F7C52624A0837 /* Tests */,
 				10A512E0B4BE89FE5AF0AAC5 /* Products */,
 			);
@@ -142,6 +146,15 @@
 				37039ED60738C37B1A12EBF4 /* SpeechStorageTests.swift */,
 			);
 			path = Tests;
+			sourceTree = "<group>";
+		};
+		13AA2DED5A208CFC93338F35 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				9A500BEB31AA9C2C7733BDD9 /* AppIcon.icon */,
+			);
+			name = Resources;
+			path = Greminder/Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -263,6 +276,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				71CB2D3F9724226E39651A2F /* AppIcon.icon in Resources */,
 				A2797B7C9233C090A4A30F5E /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -271,6 +285,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				88E287FD98E14F2CAF2F4C14 /* AppIcon.icon in Resources */,
 				08259FC69DE97985C6E0F9FD /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
