@@ -16,6 +16,7 @@ struct AppFeature {
         var collapsed: Set<String> = []
         var pending: [PendingWrite] = []
         var pendingNotificationEdits: [String: TaskNotificationEdit] = [:]
+        var sharedAwaitingNotification: Set<String> = []
         var isSaving = false
         var writeFailed = false
         var hasLoadedTasks = false
@@ -97,7 +98,7 @@ struct AppFeature {
 
         var visibleCount: Int { matchingTasks.count }
         var canSwitchAccount: Bool {
-            pending.isEmpty && pendingNotificationEdits
+            pending.isEmpty && sharedAwaitingNotification.isEmpty && pendingNotificationEdits
                 .isEmpty && !isLoading && editor == nil && !showsVoice && !isThinking
         }
 
@@ -155,11 +156,14 @@ struct AppFeature {
         case notifications(NotificationFeature.Action)
         case speechSettings(SpeechSettingsFeature.Action)
         case foreground
+        case checkSharedTasks
+        case sharePersistenceFailed(AppFailure)
     }
 
     @Dependency(\.taskClient) var tasks
     @Dependency(\.localAI) var ai
     @Dependency(\.uuid) var uuid
+    @Dependency(\.shareInbox) var shareInbox
     enum CancelID: Hashable, Sendable { case ai(UUID) }
 
     var body: some ReducerOf<Self> {
@@ -211,6 +215,14 @@ struct AppFeature {
                 return .send(.voice(.cancel))
             case .notifications(.loaded(.success)):
                 return state.pendingNotificationEdits.isEmpty ? .none : .send(.processQueue)
+            case let .notifications(.synchronized(revision, .success)):
+                if revision == state.notifications.revision { acknowledgeSharedTasks(&state) }
+                return .none
+            case .checkSharedTasks:
+                return receiveSharedTasks(&state)
+            case let .sharePersistenceFailed(error):
+                state.error = error.message
+                return .none
             case .voice, .notifications, .speechSettings: return .none
             case .foreground:
                 state.today = .today
@@ -286,6 +298,7 @@ struct AppFeature {
                    !data.snapshot.lists.contains(where: { $0.id == id }) { state.selection = .today }
                 return .merge(
                     cancellation,
+                    receiveSharedTasks(&state),
                     state.pendingNotificationKey == nil ? .none : .send(.resumeNotificationNavigation),
                     .send(.notifications(.tasksUpdated(state.snapshot, state.account, reviewOverdue: true))),
                 )
@@ -407,12 +420,24 @@ struct AppFeature {
                 state.deleteCandidate = nil
                 guard let task = state.snapshot.tasks.first(where: { $0.id == candidate.id }) else { return .none }
                 let removedIDs = state.snapshot.descendantIDs(of: task.id)
+                let previousHead = state.pending.first?.id
+                let inFlightID = state.isSaving ? previousHead : nil
+                // Persist cancellation before removing the visible draft, or a failed disk write
+                // could silently re-create it the next time the inbox is imported.
+                let removable = removedIDs.filter { id in
+                    !state.pending.contains { $0.task.id == id && $0.id == inFlightID }
+                }
+                do {
+                    try shareInbox.remove(Set(removable))
+                    state.sharedAwaitingNotification.subtract(removable)
+                } catch {
+                    state.error = L10n.tr("共有ToDoの保存状態を更新できませんでした。\n%@", error.localizedDescription)
+                    return .none
+                }
                 if let editor = state.editor, removedIDs.contains(editor.task.id) {
                     state.editor = nil
                     state.showsTaskDetails = false
                 }
-                let previousHead = state.pending.first?.id
-                let inFlightID = state.isSaving ? previousHead : nil
                 state.pending.removeAll { removedIDs.contains($0.task.id) && $0.id != inFlightID }
                 let parentInsertInFlight = state.pending.contains { $0.task.id == task.id && !$0.isDelete }
                 state.snapshot.tasks.removeAll { removedIDs.contains($0.id) }
@@ -452,8 +477,19 @@ struct AppFeature {
                     do {
                         let saved: ReminderTask
                         if write.isDelete { try await tasks.delete(write.task)
+                            try shareInbox.remove([write.task.id])
                             saved = write.task
-                        } else { saved = try await tasks.save(write.task, previous, parent) }
+                        } else {
+                            try shareInbox.stage(write.task)
+                            saved = try await tasks.save(write.task, previous, parent)
+                            do { try shareInbox.receipt(saved) } catch {
+                                // The server has already inserted the task. Preserve its ID even if
+                                // the local receipt fails, so Retry never issues a second insertion.
+                                await send(.writeFinished(write.id, .success(saved)))
+                                await send(.sharePersistenceFailed(AppFailure(error)))
+                                return
+                            }
+                        }
                         await send(.writeFinished(write.id, .success(saved)))
                     } catch { await send(.writeFinished(write.id, .failure(AppFailure(error)))) }
                 })
@@ -461,6 +497,9 @@ struct AppFeature {
                 guard state.pending.first?.id == id else { return .none }
                 state.pending.removeFirst()
                 state.isSaving = false
+                if task.id.hasPrefix("share-"), state.snapshot.tasks.contains(where: { $0.id == task.id }) {
+                    state.sharedAwaitingNotification.insert(task.id)
+                }
                 if let index = state.snapshot.tasks.firstIndex(where: { $0.id == task.id }) {
                     state.snapshot.tasks[index].remoteID = task.remoteID
                     state.snapshot.tasks[index].etag = task.etag

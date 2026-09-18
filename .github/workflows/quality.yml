@@ -37,9 +37,11 @@ jobs:
       - name: Show compiler
         run: xcodebuild -version && swift --version
       - name: Resolve pinned packages
-        run: swift package resolve --force-resolved-versions
+        # Swift 6.2.4's SwiftSyntax prebuilts conflict with coverage-instrumented macros.
+        # Resolve and test with source builds so their module and library agree.
+        run: swift package --disable-experimental-prebuilts resolve --force-resolved-versions
       - name: Unit and reducer tests
-        run: swift test --enable-code-coverage
+        run: swift test --disable-experimental-prebuilts --enable-code-coverage
       - name: Local LLM package tests
         run: swift test --package-path Packages/LocalLLM --enable-code-coverage
       - name: Use the shared dependency lock for Xcode

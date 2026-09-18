@@ -68,29 +68,35 @@ final class VoiceFeatureTests: XCTestCase {
     }
 
     func testLowStorageShowsErrorAndCanRetryAfterFreeingSpace() async {
-        let capacity = Mutex<Int64>(100_000_000)
-        var state = VoiceFeature.State()
-        state.preferences.model = .largeV3Turbo
-        let store = TestStore(initialState: state) { VoiceFeature() } withDependencies: {
-            $0.uuid = .incrementing
-            $0.speech.prepare = { _, preferences in
-                try SpeechStorage.validate(
-                    availableBytes: capacity.withLock { $0 }, model: preferences.model, onSimulator: true,
-                )
+        let defaults = UserDefaults.inMemory
+        defaults.set("ja", forKey: L10n.preferenceKey)
+        await withDependencies {
+            $0.defaultAppStorage = defaults
+        } operation: {
+            let capacity = Mutex<Int64>(100_000_000)
+            var state = VoiceFeature.State()
+            state.preferences.model = .largeV3Turbo
+            let store = TestStore(initialState: state) { VoiceFeature() } withDependencies: {
+                $0.uuid = .incrementing
+                $0.speech.prepare = { _, preferences in
+                    try SpeechStorage.validate(
+                        availableBytes: capacity.withLock { $0 }, model: preferences.model, onSimulator: true,
+                    )
+                }
             }
+            store.exhaustivity = .off(showSkippedAssertions: false)
+            await store.send(.prepare)
+            await store.receive(\.prepared)
+            XCTAssertEqual(store.state.phase, .idle)
+            XCTAssertTrue(store.state.error?.contains("空き容量が不足") == true)
+            XCTAssertTrue(store.state.error?.contains("8 GB") == true)
+            capacity.withLock { $0 = 10_000_000_000 }
+            await store.send(.prepare)
+            await store.receive(\.prepared)
+            XCTAssertEqual(store.state.phase, .ready)
+            XCTAssertNil(store.state.error)
+            await store.finish()
         }
-        store.exhaustivity = .off(showSkippedAssertions: false)
-        await store.send(.prepare)
-        await store.receive(\.prepared)
-        XCTAssertEqual(store.state.phase, .idle)
-        XCTAssertTrue(store.state.error?.contains("空き容量が不足") == true)
-        XCTAssertTrue(store.state.error?.contains("8 GB") == true)
-        capacity.withLock { $0 = 10_000_000_000 }
-        await store.send(.prepare)
-        await store.receive(\.prepared)
-        XCTAssertEqual(store.state.phase, .ready)
-        XCTAssertNil(store.state.error)
-        await store.finish()
     }
 
     func testRecordStopReviewThenExplicitAcceptance() async throws {

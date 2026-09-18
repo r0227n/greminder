@@ -126,17 +126,29 @@ final class AppFeatureTests: XCTestCase {
     }
 
     func testAIExampleUsesInsertQueriesAndPreservesParentChildRelationship() async throws {
-        let server = try TasksTestBlockServer()
-        let store = makeStore(server: server)
-        await store.send(.showExample)
-        XCTAssertEqual(store.state.proposedCount, 3)
-        XCTAssertTrue(store.state.isExample)
-        await store.send(.applyProposal)
-        await store.finish()
-        XCTAssertEqual(server.requestedQueries.count(where: { $0.contains("TasksInsert") }), 3)
-        let parent = try XCTUnwrap(server.snapshot.tasks.first { $0.title == "企画書を書く" })
-        XCTAssertEqual(server.snapshot.tasks.filter { $0.parentID == parent.id }.map(\.title), ["構成を考える", "下書きを作る"])
-        XCTAssertTrue(store.state.proposals.isEmpty)
+        for language in [DisplayLanguage.japanese, .english] {
+            let defaults = UserDefaults.inMemory
+            defaults.set(language.rawValue, forKey: L10n.preferenceKey)
+            try await withDependencies {
+                $0.defaultAppStorage = defaults
+            } operation: {
+                let server = try TasksTestBlockServer()
+                let store = makeStore(server: server)
+                await store.send(.showExample)
+                XCTAssertEqual(store.state.proposedCount, 3)
+                XCTAssertTrue(store.state.isExample)
+                let proposal = try XCTUnwrap(store.state.proposals.first)
+                await store.send(.applyProposal)
+                await store.finish()
+                XCTAssertEqual(server.requestedQueries.count(where: { $0.contains("TasksInsert") }), 3)
+                let parent = try XCTUnwrap(server.snapshot.tasks.first { $0.title == proposal.task.title })
+                XCTAssertEqual(
+                    server.snapshot.tasks.filter { $0.parentID == parent.id }.map(\.title),
+                    proposal.subtasks,
+                )
+                XCTAssertTrue(store.state.proposals.isEmpty)
+            }
+        }
     }
 
     func testStaleAIProposalIsNotAppliedAfterTaskChanges() async throws {
