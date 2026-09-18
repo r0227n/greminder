@@ -9,6 +9,10 @@ struct TaskListView: View {
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
 
+    #if os(iOS)
+        @State private var rowsHeight: CGFloat = 0
+    #endif
+
     private var accent: Color { AppTheme.tint(store.selection, lists: store.snapshot.lists) }
 
     private var horizontalPadding: CGFloat {
@@ -24,50 +28,8 @@ struct TaskListView: View {
             if let error = store.error { errorBanner(error) }
             ScrollViewReader { proxy in
                 GeometryReader { geometry in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 0) {
-                            header
-                            if store.isLoading && store.snapshot.lists.isEmpty {
-                                ProgressView(L10n.tr("読み込み中…")).frame(maxWidth: .infinity).padding(35)
-                            }
-                            ForEach(store.visibleTasks) { task in
-                                taskRow(task)
-                                if let editor = store.editor, editor.isNew, editor.afterID == task.id {
-                                    editorRow(editor)
-                                }
-                            }
-                            if let editor = store.editor, editor.isNew,
-                               editor.afterID == nil || !store.visibleTasks
-                               .contains(where: { $0.id == editor.afterID })
-                            {
-                                editorRow(editor)
-                            }
-                            if store.visibleTasks.isEmpty, store.editor == nil, !store.isLoading {
-                                VStack(spacing: 10) {
-                                    Image(systemName: "checkmark.circle")
-                                        .font(.system(
-                                            size: 36,
-                                            weight: .light,
-                                        )).foregroundStyle(.tertiary)
-                                    Text(L10n.tr(
-                                        "%@のタスクはありません",
-                                        String(describing: store.title),
-                                    ))
-                                    .font(.callout).foregroundStyle(.secondary)
-                                }.frame(maxWidth: .infinity).padding(.top, 30)
-                            }
-                            blankArea.frame(minHeight: store.proposals.isEmpty ? 90 : 16)
-                                .frame(maxHeight: .infinity)
-                            if !store.proposals.isEmpty {
-                                ProposalPreview(store: store).padding(.top, 14).padding(.bottom, 16)
-                                    .id("proposal-preview")
-                            }
-                        }
-                        .padding(.horizontal, horizontalPadding)
-                        .padding(.bottom, 88)
-                        .frame(minHeight: geometry.size.height, alignment: .top)
-                    }
-                    .scrollDismissesKeyboard(.interactively)
+                    taskScrollContent(height: geometry.size.height)
+                        .scrollDismissesKeyboard(.interactively)
                 }
                 .onChange(of: store.editor?.id) { _, id in
                     if id == nil { focusedEditor = nil }
@@ -141,6 +103,94 @@ struct TaskListView: View {
         #if os(macOS)
             .onExitCommand { store.send(.cancelEditor) }
         #endif
+    }
+
+    @ViewBuilder private func taskScrollContent(height: CGFloat) -> some View {
+        #if os(iOS)
+            List {
+                listRows
+                    .background {
+                        GeometryReader { geometry in
+                            Color.clear.preference(key: TaskRowsHeightKey.self, value: geometry.size.height)
+                        }
+                    }
+                    .listRowInsets(EdgeInsets(
+                        top: 0,
+                        leading: horizontalPadding,
+                        bottom: 0,
+                        trailing: horizontalPadding,
+                    ))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(AppTheme.surface)
+                VStack(alignment: .leading, spacing: 0) {
+                    listFooter(minimumHeight: max(90, height - rowsHeight - 88))
+                }
+                .listRowInsets(EdgeInsets(
+                    top: 0,
+                    leading: horizontalPadding,
+                    bottom: 88,
+                    trailing: horizontalPadding,
+                ))
+                .listRowSeparator(.hidden)
+                .listRowBackground(AppTheme.surface)
+            }
+            .listStyle(.plain)
+            .environment(\.defaultMinListRowHeight, 0)
+            .scrollContentBackground(.hidden)
+            .onPreferenceChange(TaskRowsHeightKey.self) { rowsHeight = $0 }
+        #else
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    listRows
+                    listFooter(minimumHeight: 90)
+                }
+                .padding(.horizontal, horizontalPadding)
+                .padding(.bottom, 88)
+                .frame(minHeight: height, alignment: .top)
+            }
+        #endif
+    }
+
+    @ViewBuilder private var listRows: some View {
+        header
+        if store.isLoading && store.snapshot.lists.isEmpty {
+            ProgressView(L10n.tr("読み込み中…")).frame(maxWidth: .infinity).padding(35)
+        }
+        ForEach(store.visibleTasks) { task in
+            taskRow(task)
+            if let editor = store.editor, editor.isNew, editor.afterID == task.id {
+                editorRow(editor)
+            }
+        }
+        if let editor = store.editor, editor.isNew,
+           editor.afterID == nil || !store.visibleTasks
+           .contains(where: { $0.id == editor.afterID })
+        {
+            editorRow(editor)
+        }
+        if store.visibleTasks.isEmpty, store.editor == nil, !store.isLoading {
+            VStack(spacing: 10) {
+                Image(systemName: "checkmark.circle")
+                    .font(.system(
+                        size: 36,
+                        weight: .light,
+                    )).foregroundStyle(.tertiary)
+                Text(L10n.tr(
+                    "%@のタスクはありません",
+                    String(describing: store.title),
+                ))
+                .font(.callout).foregroundStyle(.secondary)
+            }.frame(maxWidth: .infinity).padding(.top, 30)
+        }
+    }
+
+    @ViewBuilder private func listFooter(minimumHeight: CGFloat) -> some View {
+        blankArea.frame(minHeight: store.proposals.isEmpty ? minimumHeight : 16)
+            .frame(maxHeight: .infinity)
+        if !store.proposals.isEmpty {
+            ProposalPreview(store: store).padding(.top, 14).padding(.bottom, 16)
+                .id("proposal-preview")
+        }
     }
 
     private var header: some View {
@@ -219,7 +269,22 @@ struct TaskListView: View {
                 store.showsTaskDetails && store.editor?.task.id == task.id ? AppTheme.subtle : .clear,
                 in: RoundedRectangle(cornerRadius: 8),
             )
-            .overlay(alignment: .bottom) { Divider().padding(.leading, task.parentID == nil ? 35 : 65).opacity(0.6) }
+            .overlay(alignment: .bottom) {
+                VStack(spacing: 0) { Divider() }
+                    .padding(.leading, task.parentID == nil ? 35 : 65).opacity(0.6)
+            }
+            #if os(iOS)
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    store.send(.swipeDelete(task.id), animation: .default)
+                } label: {
+                    Label(L10n.tr("削除"), systemImage: "trash")
+                }
+                .tint(.red)
+                .accessibilityIdentifier("task-swipe-delete-\(task.id)")
+                .disabled(store.isLoading || store.showsVoice)
+            }
+            #endif
             .contextMenu {
                 Button(L10n.tr("編集")) { store.send(.edit(task.id)) }
                 Button(L10n.tr("詳細"), systemImage: "info.circle") { store.send(.openDetails(task.id)) }
@@ -320,7 +385,9 @@ struct TaskListView: View {
             guard !store.showsVoice, !Task.isCancelled else { return }
             focusedEditor = editor.id
         }
-        .overlay(alignment: .bottom) { Divider().padding(.leading, 35).opacity(0.6) }
+        .overlay(alignment: .bottom) {
+            VStack(spacing: 0) { Divider() }.padding(.leading, 35).opacity(0.6)
+        }
     }
 
     private func completionButton(_ task: ReminderTask) -> some View {
@@ -347,3 +414,13 @@ struct TaskListView: View {
         }.padding(12).background(.orange.opacity(0.08)).padding(.horizontal, horizontalPadding)
     }
 }
+
+#if os(iOS)
+    private struct TaskRowsHeightKey: PreferenceKey {
+        static let defaultValue: CGFloat = 0
+
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value += nextValue()
+        }
+    }
+#endif
