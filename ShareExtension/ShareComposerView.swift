@@ -106,7 +106,7 @@ struct ShareComposerView: View {
         HStack {
             Button(strings("キャンセル"), action: cancel).keyboardShortcut(.cancelAction).disabled(isSaving)
             Spacer()
-            Text(strings("ToDoを追加")).font(.headline)
+            Text(strings("Taskを追加")).font(.headline)
             Spacer()
             Button(action: save) {
                 if isSaving { ProgressView().controlSize(.small) } else { Text(strings("追加")) }
