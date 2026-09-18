@@ -7,14 +7,24 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		075E83FDBE208B6A231CF6A8 /* SharePreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = 10F5DFDA8A64216FDBCF18C6 /* SharePreprocessor.js */; };
 		08259FC69DE97985C6E0F9FD /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4E8973564470EF3ADD9085B4 /* InfoPlist.strings */; };
 		085544439D41C7C624B029E9 /* GreminderKit in Frameworks */ = {isa = PBXBuildFile; productRef = BEC799388435FDD512DE5589 /* GreminderKit */; };
+		15B31CC14CD780BF6FC23061 /* Greminder-Share-iOS.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = ABD5CC27F39BA78BE5544553 /* Greminder-Share-iOS.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2617892C81CE1B85D2E8E33B /* ShareComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5630A7422B5949E49E79BA /* ShareComposerView.swift */; };
 		3DB1A374BAA9798BAA07C632 /* japanese-task.aiff in Resources */ = {isa = PBXBuildFile; fileRef = 02F6BD467FF0DB875E54204F /* japanese-task.aiff */; };
+		404C3CBF09E5D508A0F55DCF /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94389B20EE70A82A16595B26 /* ShareViewController.swift */; };
 		5EB312A8651A9A6DA3D29DE1 /* GreminderKit in Frameworks */ = {isa = PBXBuildFile; productRef = 69B93BB57AC383FFE0C48C11 /* GreminderKit */; };
+		65968FCD4F1C0DA9801740A8 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94389B20EE70A82A16595B26 /* ShareViewController.swift */; };
 		674F21A819A1F49647C16B4C /* GreminderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7330944377ED0C98FBCD856E /* GreminderApp.swift */; };
+		84FFC24F8EB9136442AA21CD /* GreminderShare in Frameworks */ = {isa = PBXBuildFile; productRef = ED3D50383EEDB532BE52FE00 /* GreminderShare */; };
 		98BC5C8A771D70B45D76D146 /* SpeechSimulatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1313EF50053A9BA64275EDB3 /* SpeechSimulatorTests.swift */; };
+		9AAED50D392D20651DE2C452 /* ShareComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5630A7422B5949E49E79BA /* ShareComposerView.swift */; };
 		A2797B7C9233C090A4A30F5E /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4E8973564470EF3ADD9085B4 /* InfoPlist.strings */; };
+		BDD8D74AE11C778DD4E2F409 /* Greminder-Share-macOS.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = EC82561DA31C44C506198DEA /* Greminder-Share-macOS.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C05B6461055F7CDB8295C197 /* GreminderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7330944377ED0C98FBCD856E /* GreminderApp.swift */; };
+		D1721A8F9C36BB8F531FDE00 /* GreminderShare in Frameworks */ = {isa = PBXBuildFile; productRef = 48518C0182B330C9C65DE14B /* GreminderShare */; };
+		F909041C6316D15463A466CB /* SharePreprocessor.js in Resources */ = {isa = PBXBuildFile; fileRef = 10F5DFDA8A64216FDBCF18C6 /* SharePreprocessor.js */; };
 		FC3F66BE6567DE380B340CD5 /* SpeechStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37039ED60738C37B1A12EBF4 /* SpeechStorageTests.swift */; };
 		71CB2D3F9724226E39651A2F /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9A500BEB31AA9C2C7733BDD9 /* AppIcon.icon */; };
 		88E287FD98E14F2CAF2F4C14 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9A500BEB31AA9C2C7733BDD9 /* AppIcon.icon */; };
@@ -28,24 +38,85 @@
 			remoteGlobalIDString = 35155C8EFF842C5823D8E42A;
 			remoteInfo = "Greminder-iOS";
 		};
+		7B130E0C9B265A8AD8A70A46 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F440E7907F5E8CE0A7467DA9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D409CD098243D6530C59FE91;
+			remoteInfo = "Greminder-Share-iOS";
+		};
+		DECA3D2704D64DDB786E5E87 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F440E7907F5E8CE0A7467DA9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F621D43FA8FFD21E3815E4B0;
+			remoteInfo = "Greminder-Share-macOS";
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		018441D14F5C48C3E6157028 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BDD8D74AE11C778DD4E2F409 /* Greminder-Share-macOS.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		59ED332DB05C2230EB155166 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				15B31CC14CD780BF6FC23061 /* Greminder-Share-iOS.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		02F6BD467FF0DB875E54204F /* japanese-task.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = "japanese-task.aiff"; sourceTree = "<group>"; };
+		10F5DFDA8A64216FDBCF18C6 /* SharePreprocessor.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = SharePreprocessor.js; sourceTree = "<group>"; };
 		1313EF50053A9BA64275EDB3 /* SpeechSimulatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechSimulatorTests.swift; sourceTree = "<group>"; };
+		349EAAB2109A2D3D8611FF3F /* greminder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = greminder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		37039ED60738C37B1A12EBF4 /* SpeechStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechStorageTests.swift; sourceTree = "<group>"; };
-		494FEE257E53BDD7E3548E03 /* greminder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = greminder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C016262EA69188BD6F1951F /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		62090958B1B96AB345891FA5 /* greminder */ = {isa = PBXFileReference; lastKnownFileType = folder; name = greminder; path = .; sourceTree = SOURCE_ROOT; };
+		68D6AEF8F09E880B0F9FD843 /* greminder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = greminder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7330944377ED0C98FBCD856E /* GreminderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreminderApp.swift; sourceTree = "<group>"; };
 		7A20FE8249A73DB05C0C7C0F /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		94389B20EE70A82A16595B26 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		9A8D02A9E8B6F5342A9A719B /* Google.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Google.xcconfig; sourceTree = "<group>"; };
 		9AD8AEDAEB5EDEE2EA0D6C62 /* Greminder-SpeechTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Greminder-SpeechTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C147757D2BEE8C2FBED120ED /* greminder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = greminder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9A500BEB31AA9C2C7733BDD9 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		ABD5CC27F39BA78BE5544553 /* Greminder-Share-iOS.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Greminder-Share-iOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		EC82561DA31C44C506198DEA /* Greminder-Share-macOS.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Greminder-Share-macOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA5630A7422B5949E49E79BA /* ShareComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareComposerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		43500A3067A8D08FF67F15C6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D1721A8F9C36BB8F531FDE00 /* GreminderShare in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		86F19A9AACD000020466D442 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				84FFC24F8EB9136442AA21CD /* GreminderShare in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8A8D5D3498FFE06D594716CA /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -76,11 +147,22 @@
 		10A512E0B4BE89FE5AF0AAC5 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				494FEE257E53BDD7E3548E03 /* greminder.app */,
-				C147757D2BEE8C2FBED120ED /* greminder.app */,
+				ABD5CC27F39BA78BE5544553 /* Greminder-Share-iOS.appex */,
+				EC82561DA31C44C506198DEA /* Greminder-Share-macOS.appex */,
 				9AD8AEDAEB5EDEE2EA0D6C62 /* Greminder-SpeechTests.xctest */,
+				349EAAB2109A2D3D8611FF3F /* greminder.app */,
+				68D6AEF8F09E880B0F9FD843 /* greminder.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		13AA2DED5A208CFC93338F35 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				10F5DFDA8A64216FDBCF18C6 /* SharePreprocessor.js */,
+			);
+			name = Resources;
+			path = ShareExtension/Resources;
 			sourceTree = "<group>";
 		};
 		1A972AEB4F6F6A9EBC294D93 /* iOSTests */ = {
@@ -101,12 +183,21 @@
 			path = Greminder/Resources/AppLocalizations;
 			sourceTree = "<group>";
 		};
+		23E94C5CF8EAF511B96BFD6F /* ShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				FA5630A7422B5949E49E79BA /* ShareComposerView.swift */,
+				94389B20EE70A82A16595B26 /* ShareViewController.swift */,
+			);
+			path = ShareExtension;
+			sourceTree = "<group>";
+		};
 		5648D452C0A25206883EB13B /* Packages */ = {
 			isa = PBXGroup;
 			children = (
 				62090958B1B96AB345891FA5 /* greminder */,
 			);
-			name = Packages;
+			path = Packages;
 			sourceTree = "<group>";
 		};
 		7DFCD1FCD094AE0F73DBAF99 /* Fixtures */ = {
@@ -126,6 +217,7 @@
 				1A972AEB4F6F6A9EBC294D93 /* iOSTests */,
 				5648D452C0A25206883EB13B /* Packages */,
 				13AA2DED5A208CFC93338F35 /* Resources */,
+				23E94C5CF8EAF511B96BFD6F /* ShareExtension */,
 				AC441921C40F7C52624A0837 /* Tests */,
 				10A512E0B4BE89FE5AF0AAC5 /* Products */,
 			);
@@ -186,17 +278,19 @@
 				758CF11141EC70046ADD4C3E /* Sources */,
 				BF5E7E24138E7E305D5177F8 /* Resources */,
 				E0A7A4934ED24C4BC3DF79F3 /* Frameworks */,
+				018441D14F5C48C3E6157028 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E3673E4461129551FF5E261A /* PBXTargetDependency */,
 			);
 			name = "Greminder-macOS";
 			packageProductDependencies = (
 				69B93BB57AC383FFE0C48C11 /* GreminderKit */,
 			);
-			productName = greminder;
-			productReference = C147757D2BEE8C2FBED120ED /* greminder.app */;
+			productName = "Greminder-macOS";
+			productReference = 68D6AEF8F09E880B0F9FD843 /* greminder.app */;
 			productType = "com.apple.product-type.application";
 		};
 		35155C8EFF842C5823D8E42A /* Greminder-iOS */ = {
@@ -206,18 +300,60 @@
 				E9043189FAD37E31FD4CFC02 /* Sources */,
 				B07FEBAC2573C94D8410CE98 /* Resources */,
 				8A8D5D3498FFE06D594716CA /* Frameworks */,
+				59ED332DB05C2230EB155166 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E737026EF243B72A53CB8CBC /* PBXTargetDependency */,
 			);
 			name = "Greminder-iOS";
 			packageProductDependencies = (
 				BEC799388435FDD512DE5589 /* GreminderKit */,
 			);
-			productName = greminder;
-			productReference = 494FEE257E53BDD7E3548E03 /* greminder.app */;
+			productName = "Greminder-iOS";
+			productReference = 349EAAB2109A2D3D8611FF3F /* greminder.app */;
 			productType = "com.apple.product-type.application";
+		};
+		D409CD098243D6530C59FE91 /* Greminder-Share-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 38B9E08AE6B0B6F2E2BCDCF1 /* Build configuration list for PBXNativeTarget "Greminder-Share-iOS" */;
+			buildPhases = (
+				1D15FDCD60FC56E52919E97B /* Sources */,
+				2621C113620E26EA596328FA /* Resources */,
+				43500A3067A8D08FF67F15C6 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Greminder-Share-iOS";
+			packageProductDependencies = (
+				48518C0182B330C9C65DE14B /* GreminderShare */,
+			);
+			productName = "Greminder-Share-iOS";
+			productReference = ABD5CC27F39BA78BE5544553 /* Greminder-Share-iOS.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		F621D43FA8FFD21E3815E4B0 /* Greminder-Share-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A5FEA7CB7FE51B7AD2E8729F /* Build configuration list for PBXNativeTarget "Greminder-Share-macOS" */;
+			buildPhases = (
+				511D760D7477C887FC484842 /* Sources */,
+				4F0D68ED5F6BF78BC0E9262F /* Resources */,
+				86F19A9AACD000020466D442 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Greminder-Share-macOS";
+			packageProductDependencies = (
+				ED3D50383EEDB532BE52FE00 /* GreminderShare */,
+			);
+			productName = "Greminder-Share-macOS";
+			productReference = EC82561DA31C44C506198DEA /* Greminder-Share-macOS.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -226,7 +362,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					04AF6BDB809B951FA839033C = {
 						ProvisioningStyle = Automatic;
@@ -235,6 +371,12 @@
 						ProvisioningStyle = Automatic;
 					};
 					35155C8EFF842C5823D8E42A = {
+						ProvisioningStyle = Automatic;
+					};
+					D409CD098243D6530C59FE91 = {
+						ProvisioningStyle = Automatic;
+					};
+					F621D43FA8FFD21E3815E4B0 = {
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -256,6 +398,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				D409CD098243D6530C59FE91 /* Greminder-Share-iOS */,
+				F621D43FA8FFD21E3815E4B0 /* Greminder-Share-macOS */,
 				04AF6BDB809B951FA839033C /* Greminder-SpeechTests */,
 				35155C8EFF842C5823D8E42A /* Greminder-iOS */,
 				0BAC76E86B2808D1FF06F51C /* Greminder-macOS */,
@@ -269,6 +413,22 @@
 			buildActionMask = 2147483647;
 			files = (
 				3DB1A374BAA9798BAA07C632 /* japanese-task.aiff in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2621C113620E26EA596328FA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				075E83FDBE208B6A231CF6A8 /* SharePreprocessor.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4F0D68ED5F6BF78BC0E9262F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F909041C6316D15463A466CB /* SharePreprocessor.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -293,6 +453,24 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1D15FDCD60FC56E52919E97B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9AAED50D392D20651DE2C452 /* ShareComposerView.swift in Sources */,
+				65968FCD4F1C0DA9801740A8 /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		511D760D7477C887FC484842 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2617892C81CE1B85D2E8E33B /* ShareComposerView.swift in Sources */,
+				404C3CBF09E5D508A0F55DCF /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5637EB419DB3403ABF38F3DA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -326,6 +504,16 @@
 			target = 35155C8EFF842C5823D8E42A /* Greminder-iOS */;
 			targetProxy = 7A83D3C28E07DEE0CD006E98 /* PBXContainerItemProxy */;
 		};
+		E3673E4461129551FF5E261A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F621D43FA8FFD21E3815E4B0 /* Greminder-Share-macOS */;
+			targetProxy = DECA3D2704D64DDB786E5E87 /* PBXContainerItemProxy */;
+		};
+		E737026EF243B72A53CB8CBC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D409CD098243D6530C59FE91 /* Greminder-Share-iOS */;
+			targetProxy = 7B130E0C9B265A8AD8A70A46 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -346,6 +534,7 @@
 			baseConfigurationReference = 9A8D02A9E8B6F5342A9A719B /* Google.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "Greminder/Resources/Greminder-iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = Y9M563G252;
 				INFOPLIST_FILE = "Greminder/Resources/iOS-Info.plist";
@@ -366,6 +555,7 @@
 			baseConfigurationReference = 9A8D02A9E8B6F5342A9A719B /* Google.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "Greminder/Resources/Greminder-iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = Y9M563G252;
 				INFOPLIST_FILE = "Greminder/Resources/iOS-Info.plist";
@@ -385,7 +575,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -418,7 +607,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -438,7 +626,6 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -452,10 +639,9 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Greminder/Resources/Greminder-macOS.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = Y9M563G252;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
 				INFOPLIST_FILE = "Greminder/Resources/macOS-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -484,6 +670,27 @@
 			};
 			name = Debug;
 		};
+		8D3B3D69DE18E387966FD254 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9A8D02A9E8B6F5342A9A719B /* Google.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/Resources/macOS.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = Y9M563G252;
+				INFOPLIST_FILE = "ShareExtension/Resources/macOS-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.greminder.macos.share;
+				PRODUCT_MODULE_NAME = GreminderShareExtension;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
 		9FF4CFCF5315ADDF9C71C3F3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -507,10 +714,9 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "Greminder/Resources/Greminder-macOS.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
-				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = Y9M563G252;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
 				INFOPLIST_FILE = "Greminder/Resources/macOS-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -523,11 +729,73 @@
 			};
 			name = Release;
 		};
+		B724E1FBDB726C5CBF8244D4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9A8D02A9E8B6F5342A9A719B /* Google.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/Resources/iOS.entitlements;
+				DEVELOPMENT_TEAM = Y9M563G252;
+				INFOPLIST_FILE = "ShareExtension/Resources/iOS-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.greminder.ios.share;
+				PRODUCT_MODULE_NAME = GreminderShareExtension;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CFB6C0D1AE5CB1F216B77B81 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9A8D02A9E8B6F5342A9A719B /* Google.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/Resources/iOS.entitlements;
+				DEVELOPMENT_TEAM = Y9M563G252;
+				INFOPLIST_FILE = "ShareExtension/Resources/iOS-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.greminder.ios.share;
+				PRODUCT_MODULE_NAME = GreminderShareExtension;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		DD97FF6C1563590CD3D466D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9A8D02A9E8B6F5342A9A719B /* Google.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/Resources/macOS.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = Y9M563G252;
+				INFOPLIST_FILE = "ShareExtension/Resources/macOS-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.greminder.macos.share;
+				PRODUCT_MODULE_NAME = GreminderShareExtension;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
 		FF22A5F3306327C6ACDEC01F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -560,7 +828,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -587,7 +854,6 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -602,6 +868,15 @@
 			buildConfigurations = (
 				721D60FECF98B4C6336A7FD3 /* Debug */,
 				AA540495003CA5B148E40179 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		38B9E08AE6B0B6F2E2BCDCF1 /* Build configuration list for PBXNativeTarget "Greminder-Share-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B724E1FBDB726C5CBF8244D4 /* Debug */,
+				CFB6C0D1AE5CB1F216B77B81 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -633,6 +908,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		A5FEA7CB7FE51B7AD2E8729F /* Build configuration list for PBXNativeTarget "Greminder-Share-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8D3B3D69DE18E387966FD254 /* Debug */,
+				DD97FF6C1563590CD3D466D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -643,6 +927,10 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		48518C0182B330C9C65DE14B /* GreminderShare */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GreminderShare;
+		};
 		69B93BB57AC383FFE0C48C11 /* GreminderKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = GreminderKit;
@@ -650,6 +938,10 @@
 		BEC799388435FDD512DE5589 /* GreminderKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = GreminderKit;
+		};
+		ED3D50383EEDB532BE52FE00 /* GreminderShare */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GreminderShare;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

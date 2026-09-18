@@ -32,9 +32,15 @@ targets:
         buildPhase: resources
     dependencies:
       - package: GreminderKit
+      - target: Greminder-Share-iOS
+        embed: true
     configFiles:
       Debug: Config/Google.xcconfig
       Release: Config/Google.xcconfig
+    entitlements:
+      path: Greminder/Resources/Greminder-iOS.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.example.greminder]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.greminder.ios
@@ -68,12 +74,15 @@ targets:
         buildPhase: resources
     dependencies:
       - package: GreminderKit
+      - target: Greminder-Share-macOS
+        embed: true
     configFiles:
       Debug: Config/Google.xcconfig
       Release: Config/Google.xcconfig
     entitlements:
       path: Greminder/Resources/Greminder-macOS.entitlements
       properties:
+        com.apple.security.application-groups: [group.com.example.greminder]
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
         com.apple.security.device.audio-input: true
@@ -96,6 +105,84 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLSchemes: [$(GOOGLE_REVERSED_CLIENT_ID)]
         LSApplicationCategoryType: public.app-category.productivity
+  Greminder-Share-iOS:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ShareExtension
+        excludes: [Resources]
+      - path: ShareExtension/Resources/SharePreprocessor.js
+        buildPhase: resources
+    dependencies:
+      - package: GreminderKit
+        product: GreminderShare
+    configFiles:
+      Debug: Config/Google.xcconfig
+      Release: Config/Google.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.greminder.ios.share
+        PRODUCT_MODULE_NAME: GreminderShareExtension
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+    entitlements:
+      path: ShareExtension/Resources/iOS.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.example.greminder]
+    info:
+      path: ShareExtension/Resources/iOS-Info.plist
+      properties:
+        CFBundleDisplayName: greminder
+        CFBundleLocalizations: [en, ja]
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: ShareViewController
+          NSExtensionAttributes:
+            NSExtensionJavaScriptPreprocessingFile: SharePreprocessor
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 10
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
+  Greminder-Share-macOS:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: ShareExtension
+        excludes: [Resources]
+      - path: ShareExtension/Resources/SharePreprocessor.js
+        buildPhase: resources
+    dependencies:
+      - package: GreminderKit
+        product: GreminderShare
+    configFiles:
+      Debug: Config/Google.xcconfig
+      Release: Config/Google.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.greminder.macos.share
+        PRODUCT_MODULE_NAME: GreminderShareExtension
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+    entitlements:
+      path: ShareExtension/Resources/macOS.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.example.greminder]
+        com.apple.security.app-sandbox: true
+    info:
+      path: ShareExtension/Resources/macOS-Info.plist
+      properties:
+        CFBundleDisplayName: greminder
+        CFBundleLocalizations: [en, ja]
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: ShareViewController
+          NSExtensionAttributes:
+            NSExtensionJavaScriptPreprocessingFile: SharePreprocessor
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 10
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
   Greminder-SpeechTests:
     type: bundle.unit-test
     platform: iOS

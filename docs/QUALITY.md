@@ -8,9 +8,9 @@ Xcode 26.3（Swift 6.2.4）とmacOS 26で確認している。ツールはプロ
 bash scripts/install-quality-tools.sh
 bash scripts/quality.sh format
 bash scripts/quality.sh check
-swift package resolve --force-resolved-versions
-swift test
-swift test --package-path Packages/LocalLLM
+swift package --disable-experimental-prebuilts resolve --force-resolved-versions
+swift test --disable-experimental-prebuilts --enable-code-coverage
+swift test --package-path Packages/LocalLLM --enable-code-coverage
 ```
 
 SwiftFormat 0.58.7 / SwiftLint 0.62.2を固定し、公式リリースのZIPをSHA-256検証してから展開する。設定は`.swiftformat`と`.swiftlint.yml`。SwiftFormatが整形を担当し、SwiftLintは明示した正しさ・Swift慣習のルールをstrictで検証する。ツール更新時はインストールスクリプトのバージョン・チェックサムと品質スクリプトのバージョン検証を同時に更新する。
@@ -28,7 +28,9 @@ SwiftFormat 0.58.7 / SwiftLint 0.62.2を固定し、公式リリースのZIPをS
 
 Xcodeのワークスペースへルートの`Package.resolved`をコピーし、自動依存更新を無効にする。依存マクロの実行はCIで`-skipMacroValidation`を指定する。依存バージョン更新もPRで確認する。テストやサンプルのGoogle API呼び出しは公式SDKの`testBlock`へ渡し、認証情報はCIに不要。
 
-GitHubへのpush後、Settings → Rules → Rulesets（またはBranches）でdevelop / mainに対するPRを必須にし、必須ステータスチェックとして`Quality Gate`を登録する。初回ワークフロー実行後にチェック名を選択できる。**このローカル作業ではGitHub上の実行・ブランチ保護設定は行っていない。** ワークフローだけでは管理者の直接pushやマージを禁止しない。
+Swift 6.2.4では、SwiftSyntax 602.0.0の事前ビルドを使ったカバレッジ付きテストが、`ComposableArchitectureMacros-tool`の`SyntaxVisitor.visitationFunc`未定義シンボルでリンクに失敗する。SwiftPMの依存解決・テストの両方で`--disable-experimental-prebuilts`を指定し、同じソースからビルドする。テストとカバレッジは省略しない。以前の事前ビルドを使った`.build`が残っていて同じエラーが続く場合は、`swift test --scratch-path Build/CICoverage --disable-experimental-prebuilts --enable-code-coverage --force-resolved-versions`で新しいビルドディレクトリを指定する。
+
+GitHubへのpush後、Settings → Rules → Rulesets（またはBranches）でdevelop / mainに対するPRを必須にし、必須ステータスチェックとして`Quality Gate`を登録する。初回ワークフロー実行後にチェック名を選択できる。ブランチ保護の設定は別途必要で、ワークフローだけでは管理者の直接pushやマージを禁止しない。
 
 ## 実音声テスト
 

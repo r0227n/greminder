@@ -6,6 +6,7 @@ let package = Package(
     defaultLocalization: "en",
     platforms: [.iOS(.v26), .macOS(.v26)],
     products: [
+        .library(name: "GreminderShare", targets: ["GreminderShare"]),
         .library(name: "GreminderKit", targets: ["GreminderKit"]),
         .executable(name: "GreminderDesktop", targets: ["GreminderDesktop"]),
     ],
@@ -17,7 +18,9 @@ let package = Package(
         .package(url: "https://github.com/argmaxinc/argmax-oss-swift", exact: "1.1.0"),
     ],
     targets: [
+        .target(name: "GreminderShare", path: "ShareSupport", resources: [.process("Localizations")]),
         .target(name: "GreminderKit", dependencies: [
+            "GreminderShare",
             .product(name: "LocalLLM", package: "LocalLLM"),
             .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             .product(name: "GoogleAPIClientForREST_Tasks", package: "google-api-objectivec-client-for-rest"),
@@ -28,6 +31,7 @@ let package = Package(
         .executableTarget(name: "GreminderDesktop", dependencies: ["GreminderKit"], path: "Greminder/App"),
         .testTarget(name: "GreminderKitTests", dependencies: [
             "GreminderKit",
+            "GreminderShare",
             .product(name: "LocalLLM", package: "LocalLLM"),
         ], path: "Tests"),
     ],

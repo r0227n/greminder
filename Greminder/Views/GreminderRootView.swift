@@ -49,6 +49,14 @@ public struct GreminderRootView: View {
         #endif
             .tint(AppTheme.blue)
             .task { await store.send(.appeared).finish() }
+            .task(id: scenePhase) {
+                guard scenePhase == .active else { return }
+                // macOS can receive a share while its window is already active.
+                while !Task.isCancelled {
+                    do { try await Task.sleep(for: .seconds(3)) } catch { return }
+                    store.send(.checkSharedTasks)
+                }
+            }
             .task {
                 for await key in LocalNotificationSystem.shared.responses.stream {
                     store.send(.notificationTapped(key))

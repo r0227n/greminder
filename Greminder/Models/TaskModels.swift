@@ -1,4 +1,5 @@
 import Foundation
+import GreminderShare
 
 /// Calendar days stay calendar days across time zones. Google's Tasks API drops the time.
 struct TaskDay: Codable, Hashable, Comparable, Sendable {
@@ -178,8 +179,8 @@ struct TaskNotificationEdit: Equatable, Sendable {
 }
 
 enum TaskInputPolicy {
-    static let titleLimit = 1024
-    static let notesLimit = 8192
+    static let titleLimit = ShareInputPolicy.titleLimit
+    static let notesLimit = ShareInputPolicy.notesLimit
     static let promptLimit = 1500
     static func error(for task: ReminderTask) -> String? {
         if task.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
