@@ -1,0 +1,34 @@
+// このファイルを Config/Local.xcconfig にコピーし、各「=」の右側に値を入力してください。
+// アプリが読み込むのは Local.xcconfig です。この example ファイルは記入例として残します。
+// 値は引用符で囲まずに入力します。Local.xcconfig は Git 管理対象外です。
+// クライアントシークレット、API キー、アクセストークンは入力不要です。
+// 詳しい設定手順: docs/google-setup.md
+
+// 【iOS 用】
+// Google Cloud の OAuth クライアント設定で、iOS アプリの Bundle ID に対応する
+// クライアント ID を確認してください（既定の Bundle ID: com.example.greminder.ios）。
+// OAuth クライアントのアプリケーションの種類は「iOS」を使用します。
+//
+// 実機用のクライアント ID（末尾の .apps.googleusercontent.com まで含めた全文）。
+// 入力例: 123456789012-iosabcdef.apps.googleusercontent.com
+GOOGLE_CLIENT_ID[sdk=iphoneos*] =
+// シミュレーター用。上の実機用と同じクライアント ID を入力します。
+GOOGLE_CLIENT_ID[sdk=iphonesimulator*] =
+// 実機用の URL スキーム。上のクライアント ID を「.」で区切って逆順に並べた値です。
+// 文字そのものを逆順にはしません。認証後にアプリへ戻るために使用します。
+// 入力例: com.googleusercontent.apps.123456789012-iosabcdef
+GOOGLE_REVERSED_CLIENT_ID[sdk=iphoneos*] =
+// シミュレーター用。上の実機用と同じ URL スキームを入力します。
+GOOGLE_REVERSED_CLIENT_ID[sdk=iphonesimulator*] =
+
+// 【macOS 用】
+// macOS アプリの Bundle ID に対応する別の OAuth クライアントを使用します。
+// 既定の Bundle ID: com.example.greminder.macos
+// Google Sign-In SDK では macOS 用もアプリケーションの種類は「iOS」で作成します。
+//
+// macOS 用のクライアント ID（末尾まで含めた全文）。
+// 入力例: 123456789012-macabcdef.apps.googleusercontent.com
+GOOGLE_CLIENT_ID[sdk=macosx*] =
+// 上の macOS 用クライアント ID を「.」で区切って逆順に並べた URL スキーム。
+// 入力例: com.googleusercontent.apps.123456789012-macabcdef
+GOOGLE_REVERSED_CLIENT_ID[sdk=macosx*] =

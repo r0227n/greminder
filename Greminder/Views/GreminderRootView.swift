@@ -4,7 +4,7 @@ import SwiftUI
 
 public struct GreminderRootView: View {
     @Environment(\.locale) private var locale
-    @State private var store = Store(initialState: AppFeature.State()) { AppFeature() }
+    @State private var store: StoreOf<AppFeature>
     @Environment(\.scenePhase) private var scenePhase
 
     private var showsDetailModal: Bool {
@@ -15,9 +15,59 @@ public struct GreminderRootView: View {
         #endif
     }
 
-    public init() {}
+    public init() {
+        var state = AppFeature.State()
+        #if DEBUG
+            state.usesMockAPI = TasksAPISettings.initialUsesMockAPI
+            state.showsSampleTasks = state.usesMockAPI
+        #endif
+        _store = State(initialValue: Store(initialState: state) { AppFeature() })
+    }
+
+    private var showsHome: Bool { store.canNavigateToTasks }
 
     public var body: some View {
+        @Bindable var store = store
+        // Keep lifecycle tasks and notification subscriptions alive across authentication changes.
+        ZStack {
+            if showsHome {
+                home
+            } else {
+                LoginView(store: store)
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { store.accountMenuSource != nil },
+            set: { if !$0 { store.accountMenuSource = nil } },
+        ), onDismiss: { store.send(.notificationPresentationDismissed) }) {
+            AccountMenuView(store: store)
+        }
+        #if DEBUG
+        .sheet(isPresented: $store.showsDebug, onDismiss: { store.send(.notificationPresentationDismissed) }) {
+                DebugToolsView(store: store)
+            }
+        #endif
+            .tint(AppTheme.blue)
+            .task { await store.send(.appeared).finish() }
+            .task {
+                for await key in LocalNotificationSystem.shared.responses.stream {
+                    store.send(.notificationTapped(key))
+                }
+            }
+            .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
+            .onChange(of: showsHome) { _, _ in store.accountMenuSource = nil }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background, store.showsVoice { store.send(.closeVoice) }
+                if phase == .active, showsHome { store.send(.foreground) }
+            }
+            .environment(\.locale, Locale(identifier: L10n.identifier(for: store.displayLanguage)))
+        #if os(macOS)
+            .frame(minWidth: showsHome ? (store.showsTaskDetails ? 1080 : 780) : 480, minHeight: 600)
+        #endif
+    }
+
+    @ViewBuilder
+    private var home: some View {
         @Bindable var store = store
         NavigationSplitView(preferredCompactColumn: $store.compactColumn) {
             TaskSidebar(store: store)
@@ -26,28 +76,31 @@ public struct GreminderRootView: View {
             TaskDetailLayout(store: store)
         }
         .navigationSplitViewStyle(.balanced)
-        .tint(AppTheme.blue)
-        .task { await store.send(.appeared).finish() }
-        .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
         .sheet(isPresented: Binding(
             get: { store.showsSettings && !showsDetailModal },
             set: { if !$0 { store.showsSettings = false } },
-        )) { SettingsView(store: store) }
-        .sheet(isPresented: $store.showsNewList) { NewListSheet(store: store) }
-        .sheet(isPresented: Binding(get: { store.showsVoice }, set: { if !$0 { store.send(.closeVoice) } })) {
-            VoiceInputView(store: store.scope(state: \.voice, action: \.voice)) { store.send(.closeVoice) }
+        ), onDismiss: { store.send(.notificationPresentationDismissed) }) { SettingsView(store: store) }
+        .sheet(isPresented: $store.showsNewList, onDismiss: { store.send(.notificationPresentationDismissed) }) {
+            NewListSheet(store: store)
         }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .background, store.showsVoice { store.send(.closeVoice) }
-            if phase == .active { store.send(.foreground) }
+        .sheet(
+            isPresented: Binding(get: { store.showsVoice }, set: { if !$0 { store.send(.closeVoice) } }),
+            onDismiss: { store.send(.notificationPresentationDismissed) },
+        ) {
+            VoiceInputView(store: store.scope(state: \.voice, action: \.voice)) { store.send(.closeVoice) }
         }
         .sheet(isPresented: Binding(
             get: {
-                !store.notifications.conflicts.isEmpty && !store.showsSettings && !store.showsVoice && !store
+                #if DEBUG
+                    if store.showsDebug { return false }
+                #endif
+                return store.accountMenuSource == nil && store.pendingNotificationKey == nil && !store.notifications
+                    .conflicts.isEmpty && !store
+                    .showsSettings && !store.showsVoice && !store
                     .showsNewList && !showsDetailModal
             },
             set: { _ in },
-        )) {
+        ), onDismiss: { store.send(.notificationPresentationDismissed) }) {
             NotificationConflictView(store: store.scope(state: \.notifications, action: \.notifications))
         }
         .confirmationDialog(L10n.tr("このタスクを削除しますか？サブタスクも削除されます。"), isPresented: Binding(
@@ -56,10 +109,6 @@ public struct GreminderRootView: View {
         ), titleVisibility: .visible) {
             Button(L10n.tr("削除"), role: .destructive) { store.send(.confirmDelete) }
         }
-        .environment(\.locale, Locale(identifier: L10n.identifier(for: store.displayLanguage)))
-        #if os(macOS)
-            .frame(minWidth: store.showsTaskDetails ? 1080 : 780, minHeight: 600)
-        #endif
     }
 }
 
@@ -179,23 +228,6 @@ struct TaskSidebar: View {
                 }
                 .padding(.horizontal, 16).padding(.vertical, 10)
             }
-            if !searchFocused {
-                VStack(spacing: 14) {
-                    Button { store.showsSettings = true } label: {
-                        HStack(spacing: 9) {
-                            Image(systemName: store.account == nil ? "externaldrive" : "arrow.triangle.2.circlepath")
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(store.account == nil ? L10n.tr("サンプルデータ") : "Google Tasks")
-                                Text(store.writeFailed ? L10n.tr("未保存の変更あり") : store.isSaving ? L10n.tr("保存中…") : store
-                                    .account == nil ? L10n.tr("このデバイスに保存") : L10n.tr("接続済み"))
-                                    .font(.caption2)
-                            }
-                            Spacer()
-                            Image(systemName: "gearshape").font(.system(size: 14))
-                        }.foregroundStyle(.secondary).font(.system(size: 12))
-                    }.buttonStyle(.plain)
-                }.padding(22)
-            }
         }
         .background(AppTheme.sidebar)
         .navigationTitle(L10n.tr("リスト"))
@@ -211,6 +243,9 @@ struct TaskSidebar: View {
                     .accessibilityLabel(L10n.tr("タスクを検索"))
                     .accessibilityIdentifier("home-search-toggle")
             }
+            ToolbarSpacer(.fixed, placement: .primaryAction)
+            ToolbarItem(placement: .primaryAction) { AccountMenuButton(store: store, source: "sidebar") }
+                .sharedBackgroundVisibility(.hidden)
         }
         .onDisappear { searchFocused = false }
     }

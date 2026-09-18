@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import GoogleSignIn
 import SwiftUI
 
 @Reducer
@@ -17,9 +18,26 @@ struct AppFeature {
         var pendingNotificationEdits: [String: TaskNotificationEdit] = [:]
         var isSaving = false
         var writeFailed = false
+        var hasLoadedTasks = false
+        var pendingNotificationKey: String?
+        var waitsForNotificationDismissal = false
+        #if DEBUG
+            var showsDebug = false
+        #endif
         var isLoading = false
         var reloadAfterWrites = false
         var account: String?
+        var googleAccount: GoogleAccountProfile?
+        var accountMenuSource: String?
+        var signedInAccounts: [GoogleAccountProfile] {
+            if let googleAccount { return [googleAccount] }
+            return account.map { [GoogleAccountProfile(id: $0, email: $0, name: "")] } ?? []
+        }
+
+        var isSignedIn: Bool { account != nil }
+        var showsSampleTasks = false
+        var usesMockAPI = false
+        var canNavigateToTasks: Bool { isSignedIn || showsSampleTasks }
         var error: String?
         var message: String?
         var aiText = ""
@@ -88,7 +106,15 @@ struct AppFeature {
 
     enum Action: BindableAction {
         case binding(BindingAction<State>)
+        case notificationTapped(String)
+        case notificationPresentationDismissed
+        case resumeNotificationNavigation
         case appeared
+        case setSampleMode(Bool)
+        case setUsesMockAPI(Bool)
+        case signInAccount
+        case signOutAccount
+        case apiModeChanged(Bool, Result<ConnectedTasks, AppFailure>)
         case displayLanguageChanged(DisplayLanguage)
         case reload
         case loaded(Result<ConnectedTasks, AppFailure>)
@@ -116,6 +142,7 @@ struct AppFeature {
         case addList
         case listAdded(Result<TaskList, AppFailure>)
         case connect
+        case signInCancelled
         case disconnect
         case askAI
         case aiResult(UUID, Result<[TaskProposal], AppFailure>)
@@ -141,6 +168,7 @@ struct AppFeature {
         Scope(state: \.speechSettings, action: \.speechSettings) { SpeechSettingsFeature() }
         BindingReducer()
         Reduce { state, action in
+            if let effect = reduceNotificationNavigation(into: &state, action: action) { return effect }
             if let effect = reduceAI(into: &state, action: action) { return effect }
             switch action {
             case let .openVoice(destination):
@@ -189,6 +217,36 @@ struct AppFeature {
                 guard state.editor == nil, state.pending.isEmpty, !state.showsVoice,
                       !state.isThinking else { return .none }
                 return .send(.reload)
+            case .notificationTapped, .resumeNotificationNavigation, .notificationPresentationDismissed: return .none
+            case let .setUsesMockAPI(enabled):
+                guard enabled != state.usesMockAPI, state.canSwitchAccount else { return .none }
+                state.isLoading = true
+                state.error = nil
+                return .run { send in
+                    await send(.apiModeChanged(enabled, Result {
+                        try await tasks.setUsesMockAPI(enabled)
+                    }.mapError(AppFailure.init)))
+                }
+            case let .apiModeChanged(enabled, .success(data)):
+                state.usesMockAPI = enabled
+                state.showsSampleTasks = enabled
+                state.pendingNotificationKey = nil
+                state.waitsForNotificationDismissal = false
+                state.selection = .today
+                state.search = ""
+                state.showsSearch = false
+                state.collapsed = []
+                state.deleteCandidate = nil
+                state.message = nil
+                return .send(.loaded(.success(data)))
+            case let .apiModeChanged(_, .failure(error)):
+                state.isLoading = false
+                state.error = error.message
+                return .none
+            case let .setSampleMode(enabled):
+                guard !state.isSignedIn, state.canSwitchAccount else { return .none }
+                state.showsSampleTasks = enabled
+                return state.pendingNotificationKey == nil ? .none : .send(.resumeNotificationNavigation)
             case .binding: return .none
             case let .displayLanguageChanged(language):
                 state.$displayLanguage.withLock { $0 = language }
@@ -216,15 +274,19 @@ struct AppFeature {
                 return .run { send in await send(.loaded(Result { try await tasks.load() }.mapError(AppFailure.init))) }
             case let .loaded(.success(data)):
                 state.isLoading = false
+                state.hasLoadedTasks = true
                 let cancellation = cancelAI(&state)
                 state.snapshot = data.snapshot
                 state.account = data.account
+                state.googleAccount = data.googleAccount
+                if data.account == nil { state.showsSettings = false }
                 state.error = nil
                 state.proposalBatch = nil
                 if case let .list(id) = state.selection,
                    !data.snapshot.lists.contains(where: { $0.id == id }) { state.selection = .today }
                 return .merge(
                     cancellation,
+                    state.pendingNotificationKey == nil ? .none : .send(.resumeNotificationNavigation),
                     .send(.notifications(.tasksUpdated(state.snapshot, state.account, reviewOverdue: true))),
                 )
             case let .loaded(.failure(error)):
@@ -307,8 +369,13 @@ struct AppFeature {
                     commit(&state)
                     return .send(.processQueue)
                 }
+                if !state.writeFailed, let editor = state.editor,
+                   state.error == TaskInputPolicy.error(for: editor.task)
+                {
+                    state.error = nil
+                }
                 state.editor = nil
-                return .none
+                return state.pendingNotificationKey == nil ? .none : .send(.resumeNotificationNavigation)
             case .blankClicked:
                 if state.showsTaskDetails { saveDetails(&state) }
                 else { commit(&state) }
@@ -361,7 +428,11 @@ struct AppFeature {
                 }
                 return .send(.processQueue)
             case .processQueue:
-                let notificationUpdate = notificationEffects(&state)
+                let notificationUpdate = Effect<Action>.merge(
+                    notificationEffects(&state),
+                    state.pendingNotificationKey != nil && state.editor == nil && !state.waitsForNotificationDismissal
+                        ? .send(.resumeNotificationNavigation) : .none,
+                )
                 if state.pending.isEmpty, state.reloadAfterWrites {
                     state.reloadAfterWrites = false
                     return .merge(notificationUpdate, .send(.reload))
@@ -445,20 +516,43 @@ struct AppFeature {
                 state.newListTitle = ""
                 state.newListAppearance = ListAppearance()
                 state.compactColumn = .detail
-                return .none
+                return state.pendingNotificationKey == nil ? .none : .send(.resumeNotificationNavigation)
             case let .listAdded(.failure(error)):
                 state.isLoading = false
                 state.error = error.message
+                return state.pendingNotificationKey == nil ? .none : .send(.resumeNotificationNavigation)
+            case .signInCancelled:
+                state.isLoading = false
+                state.error = nil
                 return .none
-            case .connect, .disconnect:
+            case .connect, .disconnect, .signInAccount, .signOutAccount:
                 guard state.canSwitchAccount else { return .none }
+                let managesAccount = action.is(\.signInAccount) || action.is(\.signOutAccount)
+                if state.usesMockAPI, !managesAccount {
+                    state.showsSampleTasks = true
+                    return .send(.reload)
+                }
                 state.isLoading = true
-                let connect = { if case .connect = action { return true }
-                    return false
-                }()
+                state.error = nil
+                let connect = action.is(\.connect) || action.is(\.signInAccount)
                 return .run { send in
-                    await send(.loaded(Result { try await connect ? tasks.connect() : tasks.disconnect() }
-                            .mapError(AppFailure.init)))
+                    do {
+                        let data: ConnectedTasks = if managesAccount {
+                            try await connect ? tasks.signInAccount() : tasks.signOutAccount()
+                        } else {
+                            try await connect ? tasks.connect() : tasks.disconnect()
+                        }
+                        await send(.loaded(.success(data)))
+                    } catch {
+                        let nsError = error as NSError
+                        if connect, nsError.domain == kGIDSignInErrorDomain,
+                           nsError.code == GIDSignInError.canceled.rawValue
+                        {
+                            await send(.signInCancelled)
+                        } else {
+                            await send(.loaded(.failure(AppFailure(error))))
+                        }
+                    }
                 }
             case .askAI, .aiResult, .showExample, .cancelProposal, .applyProposal: return .none
             }

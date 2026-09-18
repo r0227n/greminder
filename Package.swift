@@ -13,7 +13,7 @@ let package = Package(
         .package(path: "Packages/LocalLLM"),
         .package(url: "https://github.com/pointfreeco/swift-composable-architecture", exact: "1.23.1"),
         .package(url: "https://github.com/google/google-api-objectivec-client-for-rest", exact: "5.4.0"),
-        .package(url: "https://github.com/google/GoogleSignIn-iOS", exact: "9.0.0"),
+        .package(url: "https://github.com/google/GoogleSignIn-iOS", exact: "10.0.0"),
         .package(url: "https://github.com/argmaxinc/argmax-oss-swift", exact: "1.1.0"),
     ],
     targets: [

@@ -134,7 +134,6 @@ struct TaskListView: View {
                     Menu {
                         Button(L10n.tr("再読み込み"), systemImage: "arrow.clockwise") { store.send(.reload) }
                             .disabled(!store.pending.isEmpty)
-                        Button(L10n.tr("設定"), systemImage: "gearshape") { store.showsSettings = true }
                     } label: { Image(systemName: "ellipsis.circle") }.accessibilityLabel(L10n.tr("その他"))
                 }
             }

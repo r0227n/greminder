@@ -3,6 +3,12 @@ import SwiftUI
 
 @main
 struct GreminderApp: App {
+    #if os(iOS)
+        @UIApplicationDelegateAdaptor(GreminderNotificationAppDelegate.self) private var appDelegate
+    #else
+        @NSApplicationDelegateAdaptor(GreminderNotificationAppDelegate.self) private var appDelegate
+    #endif
+
     var body: some Scene {
         #if os(macOS)
             // One account/session store owns the shared Google and notification services.
