@@ -156,6 +156,69 @@ final class AppConsistencyTests: XCTestCase {
         XCTAssertFalse(store.state.writeFailed)
     }
 
+    func testSwipeDeleteImmediatelyRemovesParentAndChildrenAndClosesTheirEditor() async {
+        let parent = ReminderTask(id: "p", remoteID: "google-p", listID: "work", title: "Parent")
+        let child = ReminderTask(id: "c", remoteID: "google-c", listID: "work", title: "Child", parentID: "p")
+        let other = ReminderTask(id: "other", listID: "work", title: "Keep")
+        var state = AppFeature.State()
+        state.snapshot = TaskSnapshot(tasks: [parent, child, other])
+        state.editor = TaskEditor(id: "editor", task: child, isNew: false)
+        state.showsTaskDetails = true
+        let deleted = LockIsolated<[String]>([])
+        let store = store(state)
+        store.dependencies.taskClient.delete = { task in deleted.withValue { $0.append(task.id) } }
+
+        await store.send(.swipeDelete("p"))
+        XCTAssertEqual(store.state.snapshot.tasks, [other])
+        XCTAssertNil(store.state.deleteCandidate)
+        XCTAssertNil(store.state.editor)
+        XCTAssertFalse(store.state.showsTaskDetails)
+        await store.receive(\.processQueue)
+        await store.receive(\.writeFinished)
+        await store.finish()
+        XCTAssertEqual(deleted.value, ["p"])
+        XCTAssertTrue(store.state.pending.isEmpty)
+    }
+
+    func testSwipeDeleteFailureKeepsDeletionQueuedForRetry() async {
+        let task = ReminderTask(id: "task", remoteID: "remote", listID: "work", title: "Task")
+        var state = AppFeature.State()
+        state.snapshot = TaskSnapshot(tasks: [task])
+        let store = store(state)
+        store.dependencies.taskClient.delete = { _ in throw AppFailure("Offline") }
+
+        await store.send(.swipeDelete(task.id))
+        await store.receive(\.processQueue)
+        await store.receive(\.writeFinished)
+        await store.finish()
+        XCTAssertTrue(store.state.snapshot.tasks.isEmpty)
+        XCTAssertTrue(store.state.writeFailed)
+        XCTAssertEqual(store.state.pending.count, 1)
+        XCTAssertTrue(store.state.pending.first?.isDelete == true)
+        store.dependencies.taskClient.delete = { _ in }
+        await store.send(.retryWrites)
+        await store.receive(\.processQueue)
+        await store.receive(\.writeFinished)
+        await store.finish()
+        XCTAssertTrue(store.state.pending.isEmpty)
+        XCTAssertFalse(store.state.writeFailed)
+    }
+
+    func testSwipeDeleteIgnoresUnavailableOrStaleRows() async {
+        for mode in 0 ..< 3 {
+            var state = AppFeature.State()
+            state.snapshot = .sample()
+            state.isLoading = mode == 0
+            state.showsVoice = mode == 1
+            let store = store(state)
+            await store.send(.swipeDelete(mode == 2 ? "missing" : "sample-0"))
+            await store.finish()
+            XCTAssertEqual(store.state.snapshot, state.snapshot)
+            XCTAssertTrue(store.state.pending.isEmpty)
+            XCTAssertNil(store.state.deleteCandidate)
+        }
+    }
+
     func testStaleAIResultCannotReplaceNewerRequest() async {
         var state = AppFeature.State()
         state.snapshot = .sample()
