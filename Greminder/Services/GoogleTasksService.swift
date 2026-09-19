@@ -88,7 +88,16 @@ final class GoogleTasksService {
         guard let remoteID = task.remoteID else { return }
         let query = GTLRTasksQuery_TasksDelete.query(withTasklist: task.listID, task: remoteID)
         if let etag = task.etag { query.additionalHTTPHeaders = ["If-Match": etag] }
-        _ = try await executeObject(query)
+        do {
+            _ = try await executeObject(query)
+        } catch {
+            // The remote delete may have succeeded before local inbox cleanup failed.
+            // Retrying an already absent task must still allow that cleanup to finish.
+            let response = error as NSError
+            guard response.code == 404,
+                  [kGTLRErrorObjectDomain, kGTMSessionFetcherStatusDomain].contains(response.domain)
+            else { throw error }
+        }
     }
 
     func addList(_ title: String, appearance: ListAppearance = ListAppearance()) async throws -> TaskList {

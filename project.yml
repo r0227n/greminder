@@ -1,5 +1,6 @@
 name: Greminder
 options:
+  minimumXcodeGenVersion: "2.44.1"
   bundleIdPrefix: com.example
   developmentLanguage: en
   knownRegions: [en, ja]
@@ -17,6 +18,7 @@ settings:
     CURRENT_PROJECT_VERSION: 1
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: Y9M563G252
 targets:
   Greminder-iOS:
     type: application
@@ -28,7 +30,6 @@ targets:
         buildPhase: resources
       - path: Greminder/Resources/AppIcon.icon
         type: file
-        fileType: folder.iconcomposer.icon
         buildPhase: resources
     dependencies:
       - package: GreminderKit
@@ -70,7 +71,6 @@ targets:
         buildPhase: resources
       - path: Greminder/Resources/AppIcon.icon
         type: file
-        fileType: folder.iconcomposer.icon
         buildPhase: resources
     dependencies:
       - package: GreminderKit

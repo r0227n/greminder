@@ -326,3 +326,9 @@
 "共有ToDoの同期結果を確認できません。Google Tasksで重複がないことを確認してから再試行するか、このToDoを削除してください。" = "The shared ToDo sync result is unknown. Check Google Tasks for duplicates before retrying, or delete this ToDo.";
 "共有ToDoを読み込めませんでした。\n%@" = "Could not load shared ToDos.\n%@";
 "共有ToDoの保存状態を更新できませんでした。\n%@" = "Could not update the shared ToDo save status.\n%@";
+"「%@」の保存結果を確認してください" = "Check whether “%@” was saved";
+"この共有タスクは削除操作中に保存結果が不明になりました。Google Tasksで確認し、残っていれば削除してください。" = "The save result for this shared task became uncertain while you were deleting it. Check Google Tasks and delete the task if it is still there.";
+"Google Tasksで確認済み…" = "Checked in Google Tasks…";
+"「%@」の確認記録を削除しますか？" = "Remove the review record for “%@”?";
+"確認済み・記録を削除" = "Confirmed — Remove Record";
+"Google Tasksにこのタスクが残っていないことを確認した場合のみ、この端末の確認記録を削除してください。" = "Remove the review record from this device only after confirming that this task is no longer in Google Tasks.";

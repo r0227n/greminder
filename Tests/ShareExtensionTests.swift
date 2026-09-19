@@ -213,7 +213,7 @@ struct ShareImportTests {
         state.pending = [PendingWrite(task: task)]
         state.deleteCandidate = task
         let store = TestStore(initialState: state) { AppFeature() } withDependencies: {
-            $0.shareInbox.remove = { _ in throw AppFailure("disk full") }
+            $0.shareInbox.requestDeletion = { _, _ in throw AppFailure("disk full") }
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
         await store.send(.confirmDelete)

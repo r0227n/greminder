@@ -26,6 +26,13 @@ struct TaskListView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let error = store.error { errorBanner(error) }
+            if let review = store.sharedDeletionReview {
+                SharedDeletionReviewBanner(review: review) { confirmation in
+                    guard store.sharedDeletionReview == confirmation else { return }
+                    store.send(.confirmSharedDeletion(confirmation))
+                }
+                .padding(.horizontal, horizontalPadding)
+            }
             ScrollViewReader { proxy in
                 GeometryReader { geometry in
                     taskScrollContent(height: geometry.size.height)
@@ -227,74 +234,27 @@ struct TaskListView: View {
         if let editor = store.editor, !store.showsTaskDetails, !editor.isNew,
            editor.task.id == task.id { editorRow(editor) }
         else {
-            HStack(alignment: .top, spacing: 12) {
-                completionButton(task)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(task.title).font(.system(size: rowFontSize)).strikethrough(task.isCompleted)
-                        .foregroundStyle(task.isCompleted ? .secondary : .primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    if !task.notes
-                        .isEmpty { Text(task.notes).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(2) }
-                    HStack(spacing: 6) {
-                        if task
-                            .parentID == nil { Text(store.snapshot.lists.first { $0.id == task.listID }?.title ?? "") }
-                        if let due = task.due, store.selection != .today {
-                            Text(due.label)
-                                .foregroundStyle(due < store.today && !task.isCompleted ? Color.red : Color.secondary)
-                        }
-                    }.font(.system(size: 12)).foregroundStyle(.secondary)
+            TaskRow(
+                task: task,
+                listTitle: store.snapshot.lists.first { $0.id == task.listID }?.title ?? "",
+                today: store.today,
+                showsDueDate: store.selection != .today,
+                isSelected: store.showsTaskDetails && store.editor?.task.id == task.id,
+                hasChildren: store.snapshot.tasks.contains { $0.parentID == task.id },
+                isCollapsed: store.collapsed.contains(task.id),
+                canSwipeDelete: !store.isLoading && !store.showsVoice,
+                accent: accent,
+            ) { action in
+                switch action {
+                case .edit: store.send(.edit(task.id))
+                case .showDetails: store.send(.openDetails(task.id))
+                case .toggleComplete: store.send(.toggleComplete(task.id))
+                case .toggleChildren: store.send(.toggleChildren(task.id))
+                case .addAfter: store.send(.beginAdd(after: task.id, parent: task.parentID))
+                case .addChild: store.send(.beginAdd(after: task.id, parent: task.id))
+                case .requestDelete: store.send(.requestDelete(task.id))
+                case .swipeDelete: store.send(.swipeDelete(task.id), animation: .default)
                 }
-                .contentShape(Rectangle())
-                .onTapGesture { store.send(.edit(task.id)) }
-                .accessibilityAction(named: L10n.tr("編集")) { store.send(.edit(task.id)) }
-                Button { store.send(.openDetails(task.id)) } label: {
-                    Image(systemName: "info.circle").font(.system(size: 16)).padding(5)
-                }
-                .buttonStyle(.plain).foregroundStyle(accent)
-                .help(L10n.tr("詳細を表示")).accessibilityLabel(L10n.tr("%@の詳細", String(describing: task.title)))
-                .accessibilityIdentifier("task-details-\(task.id)")
-                if store.snapshot.tasks.contains(where: { $0.parentID == task.id }) {
-                    Button { store.send(.toggleChildren(task.id)) } label: {
-                        Image(systemName: store.collapsed.contains(task.id) ? "chevron.right" : "chevron.down")
-                            .font(.system(
-                                size: 11,
-                                weight: .semibold,
-                            ))
-                    }.buttonStyle(.plain).padding(5).accessibilityLabel(L10n.tr("サブタスクの表示を切り替える"))
-                }
-            }
-            .padding(.leading, task.parentID == nil ? 0 : 30)
-            .padding(.vertical, 14)
-            .background(
-                store.showsTaskDetails && store.editor?.task.id == task.id ? AppTheme.subtle : .clear,
-                in: RoundedRectangle(cornerRadius: 8),
-            )
-            .overlay(alignment: .bottom) {
-                VStack(spacing: 0) { Divider() }
-                    .padding(.leading, task.parentID == nil ? 35 : 65).opacity(0.6)
-            }
-            #if os(iOS)
-            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                Button(role: .destructive) {
-                    store.send(.swipeDelete(task.id), animation: .default)
-                } label: {
-                    Label(L10n.tr("削除"), systemImage: "trash")
-                }
-                .tint(.red)
-                .accessibilityIdentifier("task-swipe-delete-\(task.id)")
-                .disabled(store.isLoading || store.showsVoice)
-            }
-            #endif
-            .contextMenu {
-                Button(L10n.tr("編集")) { store.send(.edit(task.id)) }
-                Button(L10n.tr("詳細"), systemImage: "info.circle") { store.send(.openDetails(task.id)) }
-                Button(L10n.tr("下にタスクを追加")) { store.send(.beginAdd(after: task.id, parent: task.parentID)) }
-                if task
-                    .parentID == nil { Button(L10n.tr("サブタスクを追加")) { store.send(.beginAdd(
-                        after: task.id,
-                        parent: task.id,
-                    )) } }
-                Button(L10n.tr("削除"), role: .destructive) { store.send(.requestDelete(task.id)) }
             }
         }
     }
@@ -365,13 +325,18 @@ struct TaskListView: View {
                 if !editor.isNew, editor.task.due != nil, store.notifications.preferences.enabled,
                    let date = store.editorNotificationDate
                 {
-                    DatePicker(L10n.tr("端末の通知"), selection: Binding(
-                        get: { store.editorNotificationDate ?? date },
-                        set: { store.send(.editorSchedule(editor.task.id, .time($0))) },
-                    ), displayedComponents: [.date, .hourAndMinute])
-                        .font(.caption)
-                    Text(L10n.tr("通知時刻はGoogle Tasksと同期されません。"))
-                        .font(.caption2).foregroundStyle(.secondary)
+                    TaskNotificationEditor(
+                        isEnabled: Binding(
+                            get: { store.editorNotificationEnabled },
+                            set: { store.send(.editorSchedule(editor.task.id, .enabled($0))) },
+                        ),
+                        date: Binding(
+                            get: { store.editorNotificationDate ?? date },
+                            set: { store.send(.editorSchedule(editor.task.id, .time($0))) },
+                        ),
+                        isLoaded: store.notifications.isLoaded,
+                    )
+                    .font(.caption)
                 }
             }
         }
@@ -390,20 +355,6 @@ struct TaskListView: View {
         }
     }
 
-    private func completionButton(_ task: ReminderTask) -> some View {
-        Button { store.send(.toggleComplete(task.id)) } label: {
-            Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 22, weight: .ultraLight))
-                .foregroundStyle(task.isCompleted ? accent : .secondary)
-                .frame(width: 24, height: 26)
-                .contentShape(Rectangle())
-        }.buttonStyle(.plain).accessibilityLabel(L10n.tr(
-            "%@を%@にする",
-            String(describing: task.title),
-            String(describing: task.isCompleted ? L10n.tr("未完了") : L10n.tr("完了")),
-        ))
-    }
-
     private func errorBanner(_ text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.circle").foregroundStyle(.orange)
@@ -412,6 +363,50 @@ struct TaskListView: View {
             Button { store.send(.dismissError) } label: { Image(systemName: "xmark") }.buttonStyle(.plain)
                 .accessibilityLabel(L10n.tr("メッセージを閉じる"))
         }.padding(12).background(.orange.opacity(0.08)).padding(.horizontal, horizontalPadding)
+    }
+}
+
+private struct SharedDeletionReviewBanner: View {
+    @Environment(\.locale) private var locale
+    let review: SharedDeletionReview
+    let onConfirm: (SharedDeletionReview) -> Void
+    @State private var confirmation: SharedDeletionReview?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(L10n.tr("「%@」の保存結果を確認してください", review.title), systemImage: "exclamationmark.triangle")
+                .font(.callout.weight(.semibold))
+                .lineLimit(3)
+            Text(L10n.tr("この共有タスクは削除操作中に保存結果が不明になりました。Google Tasksで確認し、残っていれば削除してください。"))
+                .font(.caption)
+            Button(L10n.tr("Google Tasksで確認済み…")) { confirmation = review }
+                .buttonStyle(.bordered)
+                .accessibilityIdentifier("shared-deletion-review-open")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(.orange.opacity(0.08))
+        .accessibilityIdentifier("shared-deletion-review")
+        .onChange(of: review) { _, _ in confirmation = nil }
+        .confirmationDialog(
+            L10n.tr("「%@」の確認記録を削除しますか？", confirmation?.title ?? review.title),
+            isPresented: Binding(
+                get: { confirmation != nil },
+                set: { if !$0 { confirmation = nil } },
+            ),
+            titleVisibility: .visible,
+            presenting: confirmation,
+        ) { capturedReview in
+            Button(L10n.tr("確認済み・記録を削除"), role: .destructive) {
+                guard capturedReview == review else { return }
+                onConfirm(capturedReview)
+                confirmation = nil
+            }
+            .accessibilityIdentifier("shared-deletion-review-confirm")
+            Button(L10n.tr("キャンセル"), role: .cancel) { confirmation = nil }
+        } message: { _ in
+            Text(L10n.tr("Google Tasksにこのタスクが残っていないことを確認した場合のみ、この端末の確認記録を削除してください。"))
+        }
     }
 }
 

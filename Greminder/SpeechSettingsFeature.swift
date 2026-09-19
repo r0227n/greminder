@@ -114,13 +114,15 @@ struct SpeechSettingsFeature {
                     state.preferences = try client.load()
                     state.isLoaded = true
                 case let .modelChanged(model):
-                    var updated = state.preferences
+                    // A failed or not-yet-requested load must not replace the other
+                    // persisted preference with this store's initial default.
+                    var updated = state.isLoaded ? state.preferences : try client.load()
                     updated.model = model
                     try client.save(updated)
                     state.preferences = updated
                     state.isLoaded = true
                 case let .languageChanged(language):
-                    var updated = state.preferences
+                    var updated = state.isLoaded ? state.preferences : try client.load()
                     updated.language = language
                     try client.save(updated)
                     state.preferences = updated

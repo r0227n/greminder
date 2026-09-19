@@ -142,13 +142,17 @@ struct TaskDetailView: View {
                 if store.notifications.preferences.enabled,
                    let date = store.editorNotificationDate
                 {
-                    DatePicker(L10n.tr("端末の通知"), selection: Binding(
-                        get: { store.editorNotificationDate ?? date },
-                        set: { store.send(.editorSchedule(task.id, .time($0))) },
-                    ), displayedComponents: [.date, .hourAndMinute])
-                        .datePickerStyle(.compact)
-                    Text(L10n.tr("通知時刻はこの端末に保存されます。Google Tasksとは予定日のみ同期します。"))
-                        .font(.caption).foregroundStyle(.secondary)
+                    TaskNotificationEditor(
+                        isEnabled: Binding(
+                            get: { store.editorNotificationEnabled },
+                            set: { store.send(.editorSchedule(taskID, .enabled($0))) },
+                        ),
+                        date: Binding(
+                            get: { store.editorNotificationDate ?? date },
+                            set: { store.send(.editorSchedule(taskID, .time($0))) },
+                        ),
+                        isLoaded: store.notifications.isLoaded,
+                    )
                 } else {
                     Button(L10n.tr("通知を設定…")) { store.showsSettings = true }.buttonStyle(.borderless)
                 }
@@ -178,12 +182,9 @@ struct TaskDetailView: View {
                 sectionTitle(L10n.tr("サブタスク（%@）", String(describing: children.count)))
                 ForEach(children) { child in
                     HStack(spacing: 10) {
-                        Button { store.send(.toggleComplete(child.id)) } label: {
-                            Image(systemName: child.isCompleted ? "checkmark.circle.fill" : "circle")
-                        }.buttonStyle(.plain).accessibilityLabel(L10n.tr(
-                            "%@の完了を切り替える",
-                            String(describing: child.title),
-                        ))
+                        TaskCompletionButton(title: child.title, isCompleted: child.isCompleted, accent: accent) {
+                            store.send(.toggleComplete(child.id))
+                        }
                         Button { store.send(.openDetails(child.id)) } label: {
                             HStack {
                                 Text(child.title).strikethrough(child.isCompleted)

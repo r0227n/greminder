@@ -50,22 +50,11 @@ extension AppFeature {
 
     /// Local notification intents are released only after the task draft passes validation.
     func notificationEffects(_ state: inout State) -> Effect<Action> {
-        var effects: [Effect<Action>] = [.send(.notifications(.tasksUpdated(
+        .send(.notifications(.tasksUpdated(
             state.snapshot,
             state.account,
             reviewOverdue: false,
-        )))]
-        if state.notifications.isLoaded {
-            for (id, edit) in state.pendingNotificationEdits.sorted(by: { $0.key < $1.key }) {
-                guard let task = state.snapshot.tasks.first(where: { $0.id == id }), task.due != nil else { continue }
-                if let date = edit.date { effects.append(.send(.notifications(.taskTimeChanged(task, date)))) }
-                if let enabled = edit.enabled { effects.append(.send(.notifications(.taskNotificationEnabled(
-                    task,
-                    enabled,
-                )))) }
-            }
-            state.pendingNotificationEdits = [:]
-        }
-        return .concatenate(effects)
+            edits: state.notifications.isLoaded ? state.pendingNotificationEdits : [:],
+        )))
     }
 }

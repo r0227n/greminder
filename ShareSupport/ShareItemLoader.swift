@@ -2,7 +2,7 @@ import Foundation
 import UniformTypeIdentifiers
 
 public enum ShareItemLoader {
-    /// Preserve item order, read one representation per attachment, and never fetch a URL.
+    /// Preserve item order, use one usable representation per attachment, and never fetch a URL.
     public static func drafts(from items: [NSExtensionItem]) async throws -> [ShareDraft] {
         var drafts: [ShareDraft] = []
         for item in items {
@@ -18,14 +18,22 @@ public enum ShareItemLoader {
                         title = page["title"] as? String ?? title
                         if let text = page["selection"] as? String, !text.isEmpty { texts.append(text) }
                         if let value = page["url"] as? String, let url = ShareDraft.webURL(value) { urls.append(url) }
+                        if !(page["title"] as? String ?? "").isEmpty
+                            || !(page["selection"] as? String ?? "").isEmpty
+                            || (page["url"] as? String).flatMap(ShareDraft.webURL) != nil { continue }
                     }
-                } else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+                }
+                if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
                     let value = try await load(provider, type: UTType.url.identifier)
                     let text = (value as? String) ?? (value as? Data).flatMap { String(data: $0, encoding: .utf8) }
                     let url = (value as? URL) ?? text.flatMap(ShareDraft.webURL)
-                    if let url, ShareDraft.webURL(url.absoluteString) != nil { urls.append(url) }
-                    if title == nil { title = provider.suggestedName }
-                } else if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
+                    if let url, ShareDraft.webURL(url.absoluteString) != nil {
+                        urls.append(url)
+                        if title == nil { title = provider.suggestedName }
+                        continue
+                    }
+                }
+                if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
                     let value = try await load(provider, type: UTType.plainText.identifier)
                     if let value = value as? String { texts.append(value) }
                     else if let data = value as? Data,

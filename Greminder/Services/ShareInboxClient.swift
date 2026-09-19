@@ -7,6 +7,8 @@ struct ShareInboxClient: Sendable {
     var requests: @Sendable (String) throws -> [ShareRequest] = { _ in [] }
     var stage: @Sendable (ReminderTask) throws -> Void = { _ in }
     var receipt: @Sendable (ReminderTask) throws -> Void = { _ in }
+    var requestDeletion: @Sendable (Set<String>, Set<String>) throws -> Void = { _, _ in }
+    var confirmDeletion: @Sendable (String, String) throws -> Void = { _, _ in }
     var remove: @Sendable (Set<String>) throws -> Void = { _ in }
 }
 
@@ -27,6 +29,12 @@ extension ShareInboxClient: DependencyKey {
             guard task.id.hasPrefix("share-"), let remoteID = task.remoteID else { return }
             try ShareInbox.shared().markSaved(taskID: task.id, remoteID: remoteID)
         },
+        requestDeletion: { ids, inFlightIDs in
+            let shared = ids.filter { $0.hasPrefix("share-") }
+            guard !shared.isEmpty else { return }
+            try ShareInbox.shared().requestDeletion(taskIDs: shared, inFlightTaskIDs: inFlightIDs)
+        },
+        confirmDeletion: { try ShareInbox.shared().confirmDeletion(taskID: $0, scope: $1) },
         remove: { ids in
             let shared = ids.filter { $0.hasPrefix("share-") }
             guard !shared.isEmpty else { return }
