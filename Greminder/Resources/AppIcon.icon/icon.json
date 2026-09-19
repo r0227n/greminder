@@ -1,0 +1,43 @@
+{
+  "fill-specializations" : [
+    {
+      "value" : "system-light"
+    },
+    {
+      "appearance" : "dark",
+      "value" : "system-light"
+    }
+  ],
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "Task-Marks.svg",
+          "name" : "Task-Marks"
+        },
+        {
+          "image-name" : "Task-Card.svg",
+          "name" : "Task-Card"
+        },
+        {
+          "image-name" : "Back-Card.svg",
+          "name" : "Back-Card"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
