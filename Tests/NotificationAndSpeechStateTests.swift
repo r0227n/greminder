@@ -7,17 +7,37 @@ import XCTest
 final class NotificationAndSpeechStateTests: XCTestCase {
     func testChangingUnloadedModelPreservesPersistedLanguage() async {
         let saved = LockIsolated<[SpeechPreferences]>([])
+        let prepared = LockIsolated<[SpeechPreferences]>([])
+        let gate = AsyncStream<Void>.makeStream()
         let store = TestStore(initialState: SpeechSettingsFeature.State()) { SpeechSettingsFeature() }
             withDependencies: {
+                $0.uuid = .incrementing
                 $0.speechSettings.load = { SpeechPreferences(model: .tiny, language: .english) }
                 $0.speechSettings.save = { preferences in saved.withValue { $0.append(preferences) } }
+                $0.speech.prepare = { _, preferences in
+                    prepared.withValue { $0.append(preferences) }
+                    for await _ in gate.stream {
+                        break
+                    }
+                }
             }
 
-        await store.send(.modelChanged(.small)) {
-            $0.preferences = SpeechPreferences(model: .small, language: .english)
+        // Base is the initial default, but differs from the persisted Tiny selection.
+        await store.send(.modelChanged(.base)) {
+            $0.preferences = SpeechPreferences(model: .tiny, language: .english)
             $0.isLoaded = true
+            $0.downloadingModel = .base
         }
-        XCTAssertEqual(saved.value, [SpeechPreferences(model: .small, language: .english)])
+        XCTAssertTrue(saved.value.isEmpty)
+        gate.continuation.yield(())
+        gate.continuation.finish()
+        await store.receive(\.modelPrepared) {
+            $0.downloadingModel = nil
+            $0.preferences.model = .base
+        }
+        await store.finish()
+        XCTAssertEqual(prepared.value, [SpeechPreferences(model: .base, language: .english)])
+        XCTAssertEqual(saved.value, prepared.value)
     }
 
     func testChangingUnloadedLanguagePreservesPersistedModel() async {
@@ -39,6 +59,7 @@ final class NotificationAndSpeechStateTests: XCTestCase {
         let saved = LockIsolated<[SpeechPreferences]>([])
         let store = TestStore(initialState: SpeechSettingsFeature.State()) { SpeechSettingsFeature() }
             withDependencies: {
+                $0.uuid = .incrementing
                 $0.speechSettings.load = { throw AppFailure("Unreadable preferences") }
                 $0.speechSettings.save = { preferences in saved.withValue { $0.append(preferences) } }
             }
@@ -53,7 +74,10 @@ final class NotificationAndSpeechStateTests: XCTestCase {
         XCTAssertNotNil(store.state.error)
 
         store.dependencies.speechSettings.load = { SpeechPreferences(model: .tiny, language: .english) }
+        store.dependencies.speech.prepare = { _, _ in }
         await store.send(.modelChanged(.small))
+        await store.receive(\.modelPrepared)
+        await store.finish()
         XCTAssertEqual(saved.value, [SpeechPreferences(model: .small, language: .english)])
         XCTAssertTrue(store.state.isLoaded)
         XCTAssertNil(store.state.error)

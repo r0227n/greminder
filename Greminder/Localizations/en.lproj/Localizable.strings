@@ -127,7 +127,7 @@
 "音声入力" = "Voice Input";
 "認識言語" = "Recognition Language";
 "音声モデル" = "Voice Model";
-"変更は次の音声入力から反映します。モデルごとに初回のダウンロードが必要です。" = "Changes apply the next time you use voice input. Each model requires an initial download.";
+"モデルを変更すると、必要なデータをダウンロードします。変更は次の音声入力から反映します。" = "Changing the model downloads any required data. The change applies to your next voice input.";
 "WhisperKitで端末内で文字起こしします。音声は外部へ送らず、処理後に削除します。ダウンロード済みのモデルは再利用します。" = "WhisperKit transcribes on this device. Audio is never sent to a server and is deleted after processing. Downloaded models are reused.";
 "タスクの入力" = "Entering Tasks";
 "余白をダブルクリック、または ⌘N で新規入力。Enterで保存して次の行へ。空欄のEnter、またはEscで入力を終了します。" = "Double-click an empty area or press ⌘N to add a task. Press Return to save and continue on the next row. Press Return on an empty row, or Escape, to finish.";
@@ -139,7 +139,6 @@
 "音声モデルを準備中…" = "Preparing voice model…";
 "初回はダウンロードと読み込みに時間がかかります。" = "The initial download and loading may take a while.";
 "録音を開始" = "Start Recording";
-"録音は最大60秒です。開始時にマイクの許可を確認します。" = "Record for up to 60 seconds. Microphone permission is checked when recording starts.";
 "マイクを準備中…" = "Preparing microphone…";
 "録音中、%@秒" = "Recording, %@ seconds";
 "停止して文字起こし" = "Stop and Transcribe";
@@ -212,7 +211,7 @@
 "マイクを使用できません。システム設定でgreminderのマイクへのアクセスを許可してください。" = "The microphone is unavailable. Allow microphone access for greminder in System Settings.";
 "録音を開始できませんでした。マイクが接続されているか確認してください。" = "Could not start recording. Check that a microphone is connected.";
 "録音データがありません。" = "No recording found.";
-"0.3秒から60秒の音声を録音してください。" = "Record between 0.3 and 60 seconds of audio.";
+"0.3秒以上の音声を録音してください。" = "Record at least 0.3 seconds of audio.";
 "音声を聞き取れませんでした。マイクに近づいて録音し直してください。" = "Could not hear your voice. Move closer to the microphone and record again.";
 "音声を聞き取れませんでした。もう一度録音してください。" = "Could not recognize speech. Please record again.";
 "空き容量を確認できませんでした。モデルを読み込む前に、端末のストレージを確認してください。" = "Could not check free storage. Check device storage before loading the model.";
@@ -320,6 +319,7 @@
 "ログインしていません" = "Not signed in";
 "ログアウト" = "Sign out";
 "編集中・保存中の操作を完了してからアカウントを変更してください。" = "Finish editing and saving before changing accounts.";
+"必要なモデルをダウンロードして読み込んでいます。初回は時間がかかる場合があります。" = "Downloading and loading the required model. Initial setup may take some time.";
 "サンプル" = "Sample";
 "共有ToDoの保存先リストが見つかりません。元のアカウントとリストを確認してください。" = "The destination list for a shared ToDo is missing. Check the original account and list.";
 "共有ToDoの入力内容を確認してください。" = "Check the shared ToDo content.";
@@ -332,3 +332,7 @@
 "「%@」の確認記録を削除しますか？" = "Remove the review record for “%@”?";
 "確認済み・記録を削除" = "Confirmed — Remove Record";
 "Google Tasksにこのタスクが残っていないことを確認した場合のみ、この端末の確認記録を削除してください。" = "Remove the review record from this device only after confirming that this task is no longer in Google Tasks.";
+"準備中" = "Preparing";
+"準備完了" = "Ready";
+
+"録音時間、%@秒" = "Recording duration, %@ seconds";
