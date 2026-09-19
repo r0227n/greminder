@@ -95,15 +95,20 @@ struct SpeechSettingsFeature {
         var preferences = SpeechPreferences()
         var isLoaded = false
         var error: String?
+        var downloadingModel: SpeechModel?
+        var isDownloading: Bool { downloadingModel != nil }
     }
 
     enum Action {
         case load
         case modelChanged(SpeechModel)
+        case modelPrepared(SpeechModel, Result<Void, AppFailure>)
         case languageChanged(SpeechLanguage)
     }
 
     @Dependency(\.speechSettings) var client
+    @Dependency(\.speech) var speech
+    @Dependency(\.uuid) var uuid
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -114,12 +119,41 @@ struct SpeechSettingsFeature {
                     state.preferences = try client.load()
                     state.isLoaded = true
                 case let .modelChanged(model):
+                    guard !state.isDownloading, model != state.preferences.model else { return .none }
+                    state.downloadingModel = model
+                    state.error = nil
+                    var preferences = state.preferences
+                    preferences.model = model
+                    let id = uuid()
+                    return .run { [preferences] send in
+                        let result: Result<Void, AppFailure>
+                        do {
+                            try await speech.prepare(id, preferences)
+                            result = .success(())
+                        } catch {
+                            result = .failure(AppFailure(error))
+                        }
+                        // Release the temporary session while keeping the prepared pipeline cached.
+                        await speech.cancel(id)
+                        await send(.modelPrepared(model, result))
+                    }
+                case let .modelPrepared(model, result):
+                    guard state.downloadingModel == model else { return .none }
+                    state.downloadingModel = nil
+                    if case let .failure(error) = result {
+                        state.error = L10n.tr(
+                            "モデルを準備できませんでした。接続と空き容量を確認して再試行してください。\n%@",
+                            String(describing: error.message),
+                        )
+                        return .none
+                    }
                     var updated = state.preferences
                     updated.model = model
                     try client.save(updated)
                     state.preferences = updated
                     state.isLoaded = true
                 case let .languageChanged(language):
+                    guard !state.isDownloading else { return .none }
                     var updated = state.preferences
                     updated.language = language
                     try client.save(updated)

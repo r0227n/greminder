@@ -205,9 +205,9 @@ AIはReducerへ提案を返すだけで、適用には画面上の操作が必�
 
 ## 8. 音声入力
 
-`VoiceFeature`はidle → preparing → ready → requestingPermission → recording → transcribing → reviewを管理する。モデル準備時にセッションUUIDを生成し、準備完了・録音開始・文字起こし結果を同じIDで照合する。readyやreviewでもIDを保持し、閉じる操作でそのセッションだけ解放する。TCAのキャンセルIDは`work(UUID)`と`timer(UUID)`で、別StoreのEffectを同じ固定IDで取り消さない。`SpeechClient.maximumRecordingSeconds`をReducerのタイマーとAVAudioRecorderの両方で参照する。バックグラウンド移行はルートからキャンセルする。
+`VoiceFeature`はidle → preparing → ready → requestingPermission → recording → transcribing → reviewを管理する。モデル準備時にセッションUUIDを生成し、準備完了・録音開始・文字起こし結果を同じIDで照合する。readyやreviewでもIDを保持し、閉じる操作でそのセッションだけ解放する。TCAのキャンセルIDは`work(UUID)`と`timer(UUID)`で、別StoreのEffectを同じ固定IDで取り消さない。`AppFeature.openVoice`から準備を開始し、共通の`LoadingView`オーバーレイを表示する。録音は`AVAudioRecorder.record()`で開始し、固定の時間制限を設けない。録音中は50msごとに`SpeechClient.recordingStatus`で実際の録音時間と正規化した音量を取得する。波形の履歴は直近200サンプルに制限し、`VoiceWaveformView`のCanvasで描画する。レコーダーが停止した場合は残っている音声の文字起こしへ進む。バックグラウンド移行はルートからキャンセルする。
 
-`SpeechSettingsFeature`はCodableの`SpeechPreferences`をUserDefaultsの`greminder.speech.v1`へ保存する。モデルと言語は型付きenum。Large v3 Turboは公式配布の`openai_whisper-large-v3-v20240930_626MB`を使用する。次の音声シートを開く際に値をコピーし、そのセッション内で固定する。WhisperKitの`DecodingOptions`へ言語コードを渡し、自動判定ではlanguage=nil / detectLanguage=trueにする。Whisperの既定値では自動判定が有効にならないため、明示指定する。
+`SpeechSettingsFeature`はCodableの`SpeechPreferences`をUserDefaultsの`greminder.speech.v1`へ保存する。モデルと言語は型付きenum。Large v3 Turboは公式配布の`openai_whisper-large-v3-v20240930_626MB`を使用する。モデル変更時は一時的な音声セッションで`SpeechClient.prepare`を呼び、取得・読み込み中は共通の`LoadingView`を設定画面に重ねて表示する。準備後はセッションを解放してパイプラインを保持し、成功時のみ選択設定を保存する。失敗時は元の選択と再試行可能なエラーを残す。次の音声シートを開く際に値をコピーし、そのセッション内で固定する。WhisperKitの`DecodingOptions`へ言語コードを渡し、自動判定ではlanguage=nil / detectLanguage=trueにする。Whisperの既定値では自動判定が有効にならないため、明示指定する。
 
 `WhisperSpeechEngine`はMainActorでマイクとパイプラインを所有する。`prepare(preferences, sessionID:)`で設定をセッションに固定し、別セッションによるモデル・言語の上書きを拒否する。キャンセルは具体的な所有IDを必要とし、準備していない画面や無関係なIDからの操作では別の処理を止めない。モデル名とパイプラインは`PreparedModel`へまとめて保持する。
 
@@ -217,7 +217,7 @@ AIはReducerへ提案を返すだけで、適用には画面上の操作が必�
 
 容量取得とモデル読み込みのクロージャをエンジンの初期化時に注入できる。低容量ではSDKへ到達しないこと、ロードを停止させたテスト用依存でもセッション所有権とキャンセルが維持されることを検証する。TCAはidleとエラー表示へ戻し、空きを確保した後に同じ操作から再試行できる。下限は保守的な予防値であり、検証後に他プロセスがディスクを消費する競合まで防ぐものではない。調査条件と証跡は[障害調査](diagnostics/large-v3-turbo-simulator.md)を参照。
 
-録音は16kHz / mono / PCMの一時CAFへ保存する。停止後にWhisperKitへ配列を渡し、無音チェックとnoSpeechProbで無音の誤生成を抑制する。結果はユーザーの編集後にルートへdelegateし、編集中の行IDが一致した場合のみタイトルへ追記する。AIの音声入力もaiTextへ追記するだけで自動実行しない。
+録音は16kHz / mono / PCMの一時CAFへ保存する。停止後は16,000フレーム単位のバッファで最小録音時間・無音を検証し、WhisperKitのincremental読み込みで文字起こしする。長時間音声でもファイル全体を配列へ展開しない。無音チェックとnoSpeechProbで無音の誤生成を抑制する。結果はユーザーの編集後にルートへdelegateし、編集中の行IDが一致した場合のみタイトルへ追記する。AIの音声入力もaiTextへ追記するだけで自動実行しない。
 
 ## 9. 通知と差分確認
 

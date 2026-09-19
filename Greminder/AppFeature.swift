@@ -186,7 +186,7 @@ struct AppFeature {
                 )
                 state.voiceEditorID = state.editor?.id
                 state.showsVoice = true
-                return .none
+                return .send(.voice(.prepare))
             case .closeVoice:
                 state.showsVoice = false
                 return .send(.voice(.cancel))

@@ -156,7 +156,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		13AA2DED5A208CFC93338F35 /* Resources */ = {
+		C48CB88D4F07E3EA9855595A /* Resources */ = {
 			isa = PBXGroup;
 			children = (
 				10F5DFDA8A64216FDBCF18C6 /* SharePreprocessor.js */,
@@ -217,6 +217,7 @@
 				1A972AEB4F6F6A9EBC294D93 /* iOSTests */,
 				5648D452C0A25206883EB13B /* Packages */,
 				13AA2DED5A208CFC93338F35 /* Resources */,
+				C48CB88D4F07E3EA9855595A /* Resources */,
 				23E94C5CF8EAF511B96BFD6F /* ShareExtension */,
 				AC441921C40F7C52624A0837 /* Tests */,
 				10A512E0B4BE89FE5AF0AAC5 /* Products */,
