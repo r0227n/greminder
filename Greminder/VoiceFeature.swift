@@ -11,10 +11,12 @@ struct VoiceFeature {
         var phase = Phase.idle
         var transcript = ""
         var error: String?
-        var seconds = 0
+        var duration: TimeInterval = 0
+        var levels: [Float] = []
         var sessionID: UUID?
         var destination = VoiceDestination.task
         var preferences = SpeechPreferences()
+        var seconds: Int { Int(duration) }
         var isBusy: Bool { [.preparing, .requestingPermission, .recording, .transcribing].contains(phase) }
     }
 
@@ -24,7 +26,7 @@ struct VoiceFeature {
         case prepared(UUID, Result<Void, AppFailure>)
         case record
         case recordingStarted(UUID, Result<Void, AppFailure>)
-        case tick(UUID)
+        case recordingUpdated(UUID, Result<SpeechRecordingStatus, AppFailure>)
         case stop
         case transcribed(UUID, Result<String, AppFailure>)
         case cancel
@@ -69,7 +71,8 @@ struct VoiceFeature {
             case .record:
                 guard [.ready, .review].contains(state.phase), let id = state.sessionID else { return .none }
                 state.phase = .requestingPermission
-                state.seconds = 0
+                state.duration = 0
+                state.levels = []
                 state.error = nil
                 return .run { send in
                     do { try await speech.start(id)
@@ -82,8 +85,18 @@ struct VoiceFeature {
                 guard state.sessionID == id, state.phase == .requestingPermission else { return .none }
                 state.phase = .recording
                 return .run { send in
-                    for await _ in clock.timer(interval: .seconds(1)) {
-                        await send(.tick(id))
+                    for await _ in clock.timer(interval: .milliseconds(50)) {
+                        do {
+                            let status = try await speech.recordingStatus(id)
+                            try Task.checkCancellation()
+                            await send(.recordingUpdated(id, .success(status)))
+                            guard status.isRecording else { return }
+                        } catch is CancellationError {
+                            return
+                        } catch {
+                            await send(.recordingUpdated(id, .failure(AppFailure(error))))
+                            return
+                        }
                     }
                 }.cancellable(id: CancelID.timer(id), cancelInFlight: true)
             case let .recordingStarted(id, .failure(error)):
@@ -91,10 +104,18 @@ struct VoiceFeature {
                 state.phase = state.transcript.isEmpty ? .ready : .review
                 state.error = error.message
                 return .none
-            case let .tick(id):
+            case let .recordingUpdated(id, .success(status)):
                 guard state.sessionID == id, state.phase == .recording else { return .none }
-                state.seconds += 1
-                return state.seconds >= SpeechClient.maximumRecordingSeconds ? .send(.stop) : .none
+                state.duration = status.duration
+                state.levels.append(status.level)
+                if state.levels.count > 200 {
+                    state.levels.removeFirst(state.levels.count - 200)
+                }
+                return status.isRecording ? .none : .send(.stop)
+            case let .recordingUpdated(id, .failure(error)):
+                guard state.sessionID == id, state.phase == .recording else { return .none }
+                state.error = error.message
+                return .send(.stop)
             case .stop:
                 guard state.phase == .recording, let id = state.sessionID else { return .none }
                 state.phase = .transcribing
@@ -109,6 +130,7 @@ struct VoiceFeature {
                 guard state.sessionID == id, state.phase == .transcribing else { return .none }
                 state.transcript = text
                 state.phase = .review
+                state.error = nil
                 return .none
             case let .transcribed(id, .failure(error)):
                 guard state.sessionID == id, state.phase == .transcribing else { return .none }

@@ -37,7 +37,7 @@ final class SpeechSettingsTests: XCTestCase {
         await store.send(.openVoice(.task))
         let expected = SpeechPreferences(model: .largeV3Turbo, language: .automatic)
         XCTAssertEqual(store.state.voice.preferences, expected)
-        await store.send(.voice(.prepare))
+        await store.receive(\.voice.prepare)
         await store.receive(\.voice.prepared)
         await store.finish()
         XCTAssertEqual(prepared, expected)

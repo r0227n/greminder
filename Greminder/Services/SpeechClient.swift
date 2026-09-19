@@ -3,11 +3,19 @@ import ComposableArchitecture
 import Foundation
 import WhisperKit
 
-struct SpeechClient: Sendable {
-    static let maximumRecordingSeconds = 60
+struct SpeechRecordingStatus: Equatable, Sendable {
+    var duration: TimeInterval
+    var level: Float
+    var isRecording: Bool
+}
 
+struct SpeechClient: Sendable {
     var prepare: @Sendable (UUID, SpeechPreferences) async throws -> Void
     var start: @Sendable (UUID) async throws -> Void
+    var recordingStatus: @Sendable (UUID) async throws -> SpeechRecordingStatus = { _ in
+        throw AppFailure("speech.recordingStatus dependency must be supplied")
+    }
+
     var transcribe: @Sendable (UUID) async throws -> String
     var cancel: @Sendable (UUID) async -> Void
 }
@@ -16,12 +24,14 @@ extension SpeechClient: DependencyKey {
     static let liveValue = Self(
         prepare: { try await WhisperSpeechEngine.shared.prepare($1, sessionID: $0) },
         start: { try await WhisperSpeechEngine.shared.start(id: $0) },
+        recordingStatus: { try await WhisperSpeechEngine.shared.recordingStatus(id: $0) },
         transcribe: { try await WhisperSpeechEngine.shared.finish(id: $0) },
         cancel: { await WhisperSpeechEngine.shared.cancel(id: $0) },
     )
     static let testValue = Self(
         prepare: { _, _ in throw AppFailure("speech.prepare dependency must be supplied") },
         start: { _ in throw AppFailure("speech.start dependency must be supplied") },
+        recordingStatus: { _ in throw AppFailure("speech.recordingStatus dependency must be supplied") },
         transcribe: { _ in throw AppFailure("speech.transcribe dependency must be supplied") },
         cancel: { _ in },
     )
@@ -39,7 +49,6 @@ extension DependencyValues {
 @MainActor
 final class WhisperSpeechEngine {
     static let shared = WhisperSpeechEngine()
-    static let maximumDuration = TimeInterval(SpeechClient.maximumRecordingSeconds)
 
     private struct PreparedModel {
         let model: SpeechModel
@@ -63,6 +72,7 @@ final class WhisperSpeechEngine {
     private var recorder: AVAudioRecorder?
     private var recordingID: UUID?
     private var recordingURL: URL?
+    private var recordingDuration: TimeInterval = 0
     private let availableBytes: @Sendable (URL) throws -> Int64?
     let modelCache: URL
 
@@ -173,14 +183,36 @@ final class WhisperSpeechEngine {
                 AVLinearPCMIsFloatKey: false,
                 AVLinearPCMIsBigEndianKey: false,
             ])
+            capture.isMeteringEnabled = true
             recorder = capture
-            guard capture.prepareToRecord(), capture.record(forDuration: Self.maximumDuration) else {
+            recordingDuration = 0
+            guard capture.prepareToRecord(), capture.record() else {
                 throw AppFailure(L10n.tr("録音を開始できませんでした。マイクが接続されているか確認してください。"))
             }
         } catch {
             cleanupRecording()
             throw error
         }
+    }
+
+    func recordingStatus(id: UUID) throws -> SpeechRecordingStatus {
+        try Task.checkCancellation()
+        guard session?.id == id, recordingID == id, let recorder else {
+            throw AppFailure(L10n.tr("録音データがありません。"))
+        }
+        recorder.updateMeters()
+        // AVAudioRecorder can reset currentTime when a route interruption stops it.
+        recordingDuration = max(recordingDuration, recorder.currentTime)
+        let decibels = recorder.averagePower(forChannel: 0)
+        let floorAmplitude = pow(Float(10), -60 / 40)
+        // A square-root amplitude scale keeps ordinary speech legible without animating silence.
+        let amplitude = pow(Float(10), max(-60, min(0, decibels)) / 40)
+        let level = (amplitude - floorAmplitude) / (1 - floorAmplitude)
+        return SpeechRecordingStatus(
+            duration: recordingDuration,
+            level: recorder.isRecording ? level : 0,
+            isRecording: recorder.isRecording,
+        )
     }
 
     func finish(id: UUID) async throws -> String {
@@ -210,21 +242,50 @@ final class WhisperSpeechEngine {
         guard let prepared, let session,
               prepared.model == session.preferences.model else { throw AppFailure(L10n.tr("音声モデルを準備してください。")) }
         try checkStorage(for: session.preferences.model)
-        let samples = try AudioProcessor.loadAudioAsFloatArray(fromPath: url.path)
-        guard samples.count >= 4800, samples.count <= Int(Self.maximumDuration + 1) * 16000 else {
-            throw AppFailure(L10n.tr("0.3秒から60秒の音声を録音してください。"))
-        }
-        // Reject digital silence before decoding: Whisper can hallucinate text on silence.
-        let energy = samples.reduce(0.0) { $0 + Double($1 * $1) } / Double(samples.count)
-        guard energy > 0.000001 else { throw AppFailure(L10n.tr("音声を聞き取れませんでした。マイクに近づいて録音し直してください。")) }
+        try await Self.validateRecording(url)
+        try Task.checkCancellation()
         let options = Self.decodingOptions(for: session.preferences.language)
-        let results = try await prepared.pipe.transcribe(audioArray: samples, decodeOptions: options)
+        let results = try await prepared.pipe.transcribe(
+            audioPath: url.path,
+            audioInputOptions: AudioInputOptions(audioLoadingMode: .incremental),
+            decodeOptions: options,
+        )
         try Task.checkCancellation()
         let text = results.flatMap(\.segments)
             .filter { $0.noSpeechProb < 0.6 }
             .map(\.text).joined().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { throw AppFailure(L10n.tr("音声を聞き取れませんでした。もう一度録音してください。")) }
         return text
+    }
+
+    /// Scan bounded PCM buffers so removing the duration limit does not load the entire file into RAM.
+    static func validateRecording(_ url: URL) async throws {
+        try Task.checkCancellation()
+        let file = try AVAudioFile(forReading: url, commonFormat: .pcmFormatFloat32, interleaved: false)
+        let format = file.processingFormat
+        guard Double(file.length) / format.sampleRate >= 0.3 else {
+            throw AppFailure(L10n.tr("0.3秒以上の音声を録音してください。"))
+        }
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16000) else {
+            throw AppFailure(L10n.tr("録音データがありません。"))
+        }
+        // Reject digital silence before decoding: Whisper can hallucinate text on silence.
+        let minimumEnergy = 0.000001 * Double(file.length) * Double(format.channelCount)
+        var energy = 0.0
+        while file.framePosition < file.length {
+            try Task.checkCancellation()
+            try file.read(into: buffer)
+            guard buffer.frameLength > 0, let channels = buffer.floatChannelData else { break }
+            for channel in 0 ..< Int(format.channelCount) {
+                for frame in 0 ..< Int(buffer.frameLength) {
+                    let sample = Double(channels[channel][frame])
+                    energy += sample * sample
+                }
+            }
+            if energy > minimumEnergy { return }
+            await Task.yield()
+        }
+        throw AppFailure(L10n.tr("音声を聞き取れませんでした。マイクに近づいて録音し直してください。"))
     }
 
     static func decodingOptions(for language: SpeechLanguage) -> DecodingOptions {
@@ -283,6 +344,7 @@ final class WhisperSpeechEngine {
         if let url = recordingURL { try? FileManager.default.removeItem(at: url) }
         recordingURL = nil
         recordingID = nil
+        recordingDuration = 0
         deactivateAudioSession()
     }
 

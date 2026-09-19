@@ -139,7 +139,6 @@
 "音声モデルを準備中…" = "Preparing voice model…";
 "初回はダウンロードと読み込みに時間がかかります。" = "The initial download and loading may take a while.";
 "録音を開始" = "Start Recording";
-"録音は最大60秒です。開始時にマイクの許可を確認します。" = "Record for up to 60 seconds. Microphone permission is checked when recording starts.";
 "マイクを準備中…" = "Preparing microphone…";
 "録音中、%@秒" = "Recording, %@ seconds";
 "停止して文字起こし" = "Stop and Transcribe";
@@ -212,7 +211,7 @@
 "マイクを使用できません。システム設定でgreminderのマイクへのアクセスを許可してください。" = "The microphone is unavailable. Allow microphone access for greminder in System Settings.";
 "録音を開始できませんでした。マイクが接続されているか確認してください。" = "Could not start recording. Check that a microphone is connected.";
 "録音データがありません。" = "No recording found.";
-"0.3秒から60秒の音声を録音してください。" = "Record between 0.3 and 60 seconds of audio.";
+"0.3秒以上の音声を録音してください。" = "Record at least 0.3 seconds of audio.";
 "音声を聞き取れませんでした。マイクに近づいて録音し直してください。" = "Could not hear your voice. Move closer to the microphone and record again.";
 "音声を聞き取れませんでした。もう一度録音してください。" = "Could not recognize speech. Please record again.";
 "空き容量を確認できませんでした。モデルを読み込む前に、端末のストレージを確認してください。" = "Could not check free storage. Check device storage before loading the model.";
@@ -329,3 +328,5 @@
 "共有ToDoの保存状態を更新できませんでした。\n%@" = "Could not update the shared ToDo save status.\n%@";
 "準備中" = "Preparing";
 "準備完了" = "Ready";
+
+"録音時間、%@秒" = "Recording duration, %@ seconds";
