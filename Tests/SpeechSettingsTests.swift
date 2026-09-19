@@ -83,6 +83,7 @@ final class SpeechSettingsTests: XCTestCase {
             }
         }
         await store.send(.modelChanged(.small)) {
+            $0.isLoaded = true
             $0.downloadingModel = .small
         }
         XCTAssertTrue(store.state.isDownloading)
@@ -139,7 +140,9 @@ final class SpeechSettingsTests: XCTestCase {
 
     func testSelectingCurrentModelDoesNotPrepareAgain() async {
         let store = TestStore(initialState: SpeechSettingsFeature.State()) { SpeechSettingsFeature() }
-        await store.send(.modelChanged(.base))
+        await store.send(.modelChanged(.base)) {
+            $0.isLoaded = true
+        }
         await store.finish()
     }
 

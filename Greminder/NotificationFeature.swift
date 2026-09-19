@@ -31,7 +31,7 @@ struct NotificationFeature {
     enum Action {
         case start
         case loaded(Result<NotificationPreferences, AppFailure>)
-        case tasksUpdated(TaskSnapshot, String?, reviewOverdue: Bool)
+        case tasksUpdated(TaskSnapshot, String?, reviewOverdue: Bool, edits: [String: TaskNotificationEdit] = [:])
         case setEnabled(Bool)
         case accessResult(Result<NotificationAccess, AppFailure>)
         case defaultTimeChanged(Date)
@@ -67,7 +67,7 @@ struct NotificationFeature {
                 state.isLoading = false
                 state.error = L10n.tr("通知設定を読み込めませんでした。\n%@", String(describing: error.message))
                 return .none
-            case let .tasksUpdated(snapshot, account, review):
+            case let .tasksUpdated(snapshot, account, review, edits):
                 let scope = NotificationPlanner.scope(account)
                 if state.scope != scope { state.conflicts = []
                     state.ignored = []
@@ -78,8 +78,13 @@ struct NotificationFeature {
                 state.reviewOnLoad = state.reviewOnLoad || review
                 if state.isLoaded { update(&state, review: state.reviewOnLoad)
                     state.reviewOnLoad = false
+                    for task in snapshot.tasks {
+                        if let edit = edits[task.id] { apply(edit, to: task, state: &state) }
+                    }
                 }
-                return .send(.synchronize)
+                // Snapshot migration, explicit edits, and the synchronization barrier
+                // form one state transition before an older save can finish.
+                return synchronize(&state)
             case let .setEnabled(enabled):
                 guard state.isLoaded, !state.isRequesting else { return .none }
                 if !enabled {
@@ -110,30 +115,12 @@ struct NotificationFeature {
                 // The default only affects newly encountered tasks; edited task times remain intact.
                 return .send(.synchronize)
             case let .taskTimeChanged(task, date):
-                guard state.isLoaded, let due = task.due else { return .none }
-                let key = NotificationPlanner.key(task: task, scope: state.scope)
-                state.preferences.records[key] = NotificationRecord(
-                    date: date,
-                    sourceDay: due,
-                    isEnabled: state.preferences.records[key]?
-                        .isEnabled ?? true,
-                )
-                state.conflicts.removeAll { $0.id == key }
+                guard state.isLoaded, task.due != nil else { return .none }
+                apply(TaskNotificationEdit(date: date), to: task, state: &state)
                 return .send(.synchronize)
             case let .taskNotificationEnabled(task, enabled):
-                guard state.isLoaded, let due = task.due else { return .none }
-                let key = NotificationPlanner.key(task: task, scope: state.scope)
-                var record = state.preferences.records[key] ?? NotificationRecord(
-                    date: NotificationPlanner.date(
-                        day: due,
-                        hour: state.preferences.hour,
-                        minute: state.preferences.minute,
-                    ),
-                    sourceDay: due,
-                )
-                record.isEnabled = enabled
-                state.preferences.records[key] = record
-                state.conflicts.removeAll { $0.id == key }
+                guard state.isLoaded, task.due != nil else { return .none }
+                apply(TaskNotificationEdit(enabled: enabled), to: task, state: &state)
                 return .send(.synchronize)
             case let .resolveConflicts(accept):
                 for conflict in state.conflicts {
@@ -148,30 +135,7 @@ struct NotificationFeature {
                 state.conflicts = []
                 return .send(.synchronize)
             case .synchronize:
-                guard state.isLoaded, state.hasTasks else { return .none }
-                // Capture only one write at a time. A result revision alone cannot prevent
-                // an older effect from reaching persistence after a newer one.
-                guard !state.isSynchronizing else {
-                    state.needsSynchronization = true
-                    return .none
-                }
-                state.isSynchronizing = true
-                state.needsSynchronization = false
-                state.revision += 1
-                let revision = state.revision
-                let preferences = state.preferences
-                let requests = NotificationPlanner.requests(
-                    preferences: preferences,
-                    snapshot: state.snapshot,
-                    scope: state.scope,
-                    now: now,
-                )
-                return .run { send in
-                    await send(.synchronized(
-                        revision,
-                        Result { try await client.saveAndSchedule(preferences, requests) }.mapError(AppFailure.init),
-                    ))
-                }
+                return synchronize(&state)
             case let .synchronized(revision, .success(report)):
                 guard revision == state.revision, state.isSynchronizing else { return .none }
                 state.isSynchronizing = false
@@ -188,6 +152,58 @@ struct NotificationFeature {
                 }
                 return state.needsSynchronization ? .send(.synchronize) : .none
             }
+        }
+    }
+
+    private func apply(_ edit: TaskNotificationEdit, to task: ReminderTask, state: inout State) {
+        guard let due = task.due else { return }
+        let key = NotificationPlanner.key(task: task, scope: state.scope)
+        var record = state.preferences.records[key] ?? NotificationRecord(
+            date: NotificationPlanner.date(day: due, hour: state.preferences.hour, minute: state.preferences.minute),
+            sourceDay: due,
+        )
+        if let date = edit.date {
+            record.date = date
+            record.sourceDay = due
+        }
+        if let enabled = edit.enabled { record.isEnabled = enabled }
+        state.preferences.records[key] = record
+        state.conflicts.removeAll { $0.id == key }
+    }
+
+    private func synchronize(_ state: inout State) -> Effect<Action> {
+        guard state.isLoaded else { return .none }
+        // Capture only one write at a time. A result revision alone cannot prevent
+        // an older effect from reaching persistence after a newer one.
+        guard !state.isSynchronizing else {
+            state.needsSynchronization = true
+            return .none
+        }
+        state.isSynchronizing = true
+        state.needsSynchronization = false
+        state.revision += 1
+        let revision = state.revision
+        let preferences = state.preferences
+        let hasTasks = state.hasTasks
+        let requests = hasTasks ? NotificationPlanner.requests(
+            preferences: preferences,
+            snapshot: state.snapshot,
+            scope: state.scope,
+            now: now,
+        ) : []
+        return .run { send in
+            await send(.synchronized(
+                revision,
+                Result {
+                    if hasTasks {
+                        try await client.saveAndSchedule(preferences, requests)
+                    } else {
+                        // Settings remain usable when task loading fails. An
+                        // unknown snapshot must not cancel existing reminders.
+                        try await client.savePreferences(preferences)
+                    }
+                }.mapError(AppFailure.init),
+            ))
         }
     }
 

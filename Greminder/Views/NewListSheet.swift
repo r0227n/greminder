@@ -6,7 +6,7 @@ struct NewListSheet: View {
     @Bindable var store: StoreOf<AppFeature>
     @Environment(\.dismiss) private var dismiss
     @FocusState private var titleFocused: Bool
-    private let columns = Array(repeating: GridItem(.flexible()), count: 6)
+    private let columns = [GridItem(.adaptive(minimum: 44), spacing: 12)]
 
     var body: some View {
         NavigationStack {

@@ -1,57 +1,12 @@
 import Foundation
 import GreminderShare
 
-/// Calendar days stay calendar days across time zones. Google's Tasks API drops the time.
-struct TaskDay: Codable, Hashable, Comparable, Sendable {
-    let value: String
-    init?(_ value: String) {
-        guard value.count == 10 else { return nil }
-        let parser = Self.formatter
-        guard let date = parser.date(from: value), parser.string(from: date) == value else { return nil }
-        self.value = value
-    }
+/// App and share extension use the same validated calendar-day representation.
+typealias TaskDay = CalendarDay
 
-    init(date: Date, calendar: Calendar = .current) {
-        var gregorian = Calendar(identifier: .gregorian)
-        gregorian.timeZone = calendar.timeZone
-        let c = gregorian.dateComponents([.year, .month, .day], from: date)
-        value = String(format: "%04d-%02d-%02d", c.year!, c.month!, c.day!)
-    }
-
-    private enum CodingKeys: String, CodingKey { case value }
-    init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let value = try container.decode(String.self, forKey: .value)
-        guard let valid = Self(value) else {
-            throw DecodingError.dataCorruptedError(
-                forKey: .value,
-                in: container,
-                debugDescription: "Invalid ISO calendar day",
-            )
-        }
-        self = valid
-    }
-
-    static var today: Self { Self(date: .now) }
-    var date: Date {
-        let parts = value.split(separator: "-").compactMap { Int($0) }
-        let calendar = Calendar(identifier: .gregorian)
-        return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2], hour: 12))
-            ?? Self.formatter.date(from: value)!
-    }
-
+extension CalendarDay {
     var label: String { date.formatted(.dateTime.month(.defaultDigits).day().locale(L10n.locale)) }
     var apiValue: String { value + "T00:00:00.000Z" }
-    static func < (lhs: Self, rhs: Self) -> Bool { lhs.value < rhs.value }
-    private static var formatter: DateFormatter {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.calendar = Calendar(identifier: .gregorian)
-        f.timeZone = TimeZone(secondsFromGMT: 0)
-        f.dateFormat = "yyyy-MM-dd"
-        f.isLenient = false
-        return f
-    }
 }
 
 struct TaskList: Identifiable, Codable, Equatable, Sendable {
@@ -80,6 +35,8 @@ struct TaskSnapshot: Codable, Equatable, Sendable {
 
     /// The sidebar badge and task list use the same membership rule, including undated children.
     func tasks(for selection: TaskSelection, today: TaskDay) -> [ReminderTask] {
+        // Completed is an exact status filter, not a container for unfinished descendants.
+        if selection == .completed { return tasks.filter(\.isCompleted) }
         let includedParents = Set(tasks.filter { selection.includes($0, today: today) }.map(\.id))
         return tasks.filter {
             selection.includes($0, today: today)

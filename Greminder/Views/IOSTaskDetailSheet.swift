@@ -70,12 +70,13 @@
                             Section(L10n.tr("サブタスク（%@）", String(describing: children.count))) {
                                 ForEach(children) { child in
                                     HStack {
-                                        Button { store.send(.toggleComplete(child.id)) } label: {
-                                            Image(systemName: child.isCompleted ? "checkmark.circle.fill" : "circle")
-                                        }.buttonStyle(.borderless).accessibilityLabel(L10n.tr(
-                                            "%@の完了を切り替える",
-                                            String(describing: child.title),
-                                        ))
+                                        TaskCompletionButton(
+                                            title: child.title,
+                                            isCompleted: child.isCompleted,
+                                            accent: accent,
+                                        ) {
+                                            store.send(.toggleComplete(child.id))
+                                        }
                                         Button { store.send(.openDetails(child.id)) } label: {
                                             HStack {
                                                 Text(child.title).strikethrough(child.isCompleted)
@@ -83,7 +84,9 @@
                                                 Spacer()
                                                 Image(systemName: "chevron.right").foregroundStyle(.tertiary)
                                             }
-                                        }.buttonStyle(.plain)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityLabel(L10n.tr("%@の詳細", child.title))
                                     }
                                 }
                                 Button { store.send(.beginAdd(after: children.last?.id ?? task.id, parent: task.id))

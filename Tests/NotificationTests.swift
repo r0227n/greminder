@@ -129,7 +129,8 @@ final class NotificationTests: XCTestCase {
             NotificationPlanner.requests(preferences: preferences, snapshot: snapshot, scope: scope, now: now).count,
             4,
         )
-        XCTAssertNil(preferences.records[NotificationPlanner.key(task: snapshot.tasks[0], scope: scope)])
+        XCTAssertNotNil(preferences.records[NotificationPlanner.key(task: snapshot.tasks[0], scope: scope)])
+        XCTAssertNil(preferences.records[NotificationPlanner.key(task: snapshot.tasks[1], scope: scope)])
     }
 
     func testDisabledNotificationsScheduleNothingAndAccountsStaySeparate() {

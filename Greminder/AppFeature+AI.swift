@@ -101,6 +101,7 @@ extension AppFeature {
                 }
             }
             if let first = state.proposals.first { state.selection = .list(first.task.listID) }
+            publishShareContext(&state)
             state.proposalBatch = nil
             state.aiText = ""
             return .send(.processQueue)

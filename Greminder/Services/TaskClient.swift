@@ -88,6 +88,7 @@ final class TasksEnvironment {
     private let saveGoogleAccount: @MainActor (GoogleAccountProfile?) -> Void
     private var account: String?
     private var didRestore = false
+    private var operationID = UUID()
 
     static var isConfigured: Bool {
         let id = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String ?? ""
@@ -152,20 +153,29 @@ final class TasksEnvironment {
     }
 
     func load() async throws -> ConnectedTasks {
+        let operation = try beginOperation()
         if usesMockAPI {
-            return try await ConnectedTasks(snapshot: loadSnapshot(from: demo), googleAccount: googleAccount)
+            let snapshot = try await loadSnapshot(from: demo)
+            try validateOperation(operation)
+            return ConnectedTasks(snapshot: snapshot, googleAccount: googleAccount)
         }
-        if !didRestore, let restored = try await restoreAccount() {
-            return try await activate(restored)
+        if !didRestore {
+            let restored = try await restoreAccount()
+            try validateOperation(operation)
+            if let restored { return try await activate(restored, operation: operation) }
         }
         let snapshot = account == nil ? TaskSnapshot() : try await loadSnapshot(from: client)
+        try validateOperation(operation)
         didRestore = true
         return ConnectedTasks(snapshot: snapshot, account: account, googleAccount: googleAccount)
     }
 
     func connect() async throws -> ConnectedTasks {
         if usesMockAPI { return try await load() }
-        return try await activate(signIn())
+        let operation = try beginOperation()
+        let connection = try await signIn()
+        try validateOperation(operation)
+        return try await activate(connection, operation: operation)
     }
 
     func disconnect() async throws -> ConnectedTasks {
@@ -176,15 +186,20 @@ final class TasksEnvironment {
     /// Account management is available even while task requests use the mock transport.
     func signInAccount() async throws -> ConnectedTasks {
         guard usesMockAPI else { return try await connect() }
+        let operation = try beginOperation()
         let snapshot = try await loadSnapshot(from: demo)
+        try validateOperation(operation)
         let connection = try await signIn()
+        try validateOperation(operation)
         liveConnection = connection
         updateProfile(connection.profile)
         return ConnectedTasks(snapshot: snapshot, googleAccount: googleAccount)
     }
 
     func signOutAccount() async throws -> ConnectedTasks {
+        let operation = try beginOperation()
         let snapshot = usesMockAPI ? try await loadSnapshot(from: demo) : TaskSnapshot()
+        try validateOperation(operation)
         signOut()
         liveConnection = nil
         updateProfile(nil)
@@ -196,6 +211,7 @@ final class TasksEnvironment {
 
     func setUsesMockAPI(_ enabled: Bool) async throws -> ConnectedTasks {
         guard enabled != usesMockAPI else { return try await load() }
+        let operation = try beginOperation()
         // Load first: failures must leave both the transport and the saved preference unchanged.
         let connection: TasksAccountConnection = if enabled {
             TasksAccountConnection(client: demo, account: nil)
@@ -206,8 +222,10 @@ final class TasksEnvironment {
         } else {
             TasksAccountConnection(client: demo, account: nil)
         }
+        try validateOperation(operation)
         let snapshot = !enabled && connection.account == nil
             ? TaskSnapshot() : try await loadSnapshot(from: connection.client)
+        try validateOperation(operation)
         client = connection.client
         account = connection.account
         usesMockAPI = enabled
@@ -220,14 +238,28 @@ final class TasksEnvironment {
         return ConnectedTasks(snapshot: snapshot, account: account, googleAccount: googleAccount)
     }
 
-    private func activate(_ connection: TasksAccountConnection) async throws -> ConnectedTasks {
+    private func activate(_ connection: TasksAccountConnection, operation: UUID) async throws -> ConnectedTasks {
         let snapshot = try await loadSnapshot(from: connection.client)
+        try validateOperation(operation)
         client = connection.client
         account = connection.account
         liveConnection = connection
         updateProfile(connection.profile)
         didRestore = true
         return ConnectedTasks(snapshot: snapshot, account: account, googleAccount: googleAccount)
+    }
+
+    // Main-actor isolation does not prevent an older OAuth/snapshot await from finishing
+    // after a newer sign-out or transport switch. Only the latest operation may publish.
+    private func beginOperation() throws -> UUID {
+        try Task.checkCancellation()
+        operationID = UUID()
+        return operationID
+    }
+
+    private func validateOperation(_ operation: UUID) throws {
+        try Task.checkCancellation()
+        guard operation == operationID else { throw CancellationError() }
     }
 
     private func updateProfile(_ profile: GoogleAccountProfile?) {

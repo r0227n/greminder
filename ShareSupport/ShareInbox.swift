@@ -8,7 +8,7 @@ public struct ShareInbox: Sendable {
     public let directory: URL
 
     private struct Contents: Codable {
-        var version = 1
+        var version = 2
         var context: ShareContext?
         var requests: [ShareRequest] = []
     }
@@ -75,6 +75,37 @@ public struct ShareInbox: Sendable {
         }
     }
 
+    /// Only an unsent request can be discarded immediately. An insert may have reached
+    /// the server even when its response is lost, so retain both its receipt and intent.
+    public func requestDeletion(taskIDs: Set<String>, inFlightTaskIDs: Set<String>) throws {
+        try access { contents in
+            for index in contents.requests.indices.reversed()
+                where taskIDs.contains(contents.requests[index].draft.taskID)
+            {
+                let request = contents.requests[index]
+                if request.phase == .queued, request.remoteID == nil,
+                   !inFlightTaskIDs.contains(request.draft.taskID)
+                {
+                    contents.requests.remove(at: index)
+                } else {
+                    contents.requests[index].deletionRequested = true
+                    // The async sender may not have staged an in-flight request yet.
+                    if request.phase == .queued { contents.requests[index].phase = .sending }
+                }
+            }
+        }
+    }
+
+    /// Explicit confirmation only clears an unresolved cancellation in this account.
+    /// A receipt that acquired a server ID must instead finish its remote deletion.
+    public func confirmDeletion(taskID: String, scope: String) throws {
+        try access { contents in
+            contents.requests.removeAll {
+                $0.draft.taskID == taskID && $0.scope == scope && $0.deletionRequested && $0.remoteID == nil
+            }
+        }
+    }
+
     public func remove(taskIDs: Set<String>) throws {
         try access { $0.requests.removeAll { taskIDs.contains($0.draft.taskID) } }
     }
@@ -89,11 +120,13 @@ public struct ShareInbox: Sendable {
                 var contents = Contents()
                 if FileManager.default.fileExists(atPath: url.path) {
                     contents = try JSONDecoder().decode(Contents.self, from: Data(contentsOf: url))
-                    guard contents.version == 1 else { throw ShareInboxError.unsupportedVersion }
+                    guard (1 ... 2).contains(contents.version) else { throw ShareInboxError.unsupportedVersion }
                 }
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = .sortedKeys
                 let original = try encoder.encode(contents)
+                // Older writers must reject v2 instead of dropping deletion intent.
+                contents.version = 2
                 let result = try operation(&contents)
                 let updated = try encoder.encode(contents)
                 if write, original != updated {

@@ -119,9 +119,16 @@ struct SpeechSettingsFeature {
                     state.preferences = try client.load()
                     state.isLoaded = true
                 case let .modelChanged(model):
-                    guard !state.isDownloading, model != state.preferences.model else { return .none }
-                    state.downloadingModel = model
+                    guard !state.isDownloading else { return .none }
+                    // Read the persisted selection before comparing or preparing a model;
+                    // a failed load must not replace the other preference with a default.
+                    if !state.isLoaded {
+                        state.preferences = try client.load()
+                        state.isLoaded = true
+                    }
                     state.error = nil
+                    guard model != state.preferences.model else { return .none }
+                    state.downloadingModel = model
                     var preferences = state.preferences
                     preferences.model = model
                     let id = uuid()
@@ -154,7 +161,7 @@ struct SpeechSettingsFeature {
                     state.isLoaded = true
                 case let .languageChanged(language):
                     guard !state.isDownloading else { return .none }
-                    var updated = state.preferences
+                    var updated = state.isLoaded ? state.preferences : try client.load()
                     updated.language = language
                     try client.save(updated)
                     state.preferences = updated

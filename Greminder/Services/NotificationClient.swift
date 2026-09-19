@@ -140,10 +140,12 @@ enum NotificationPlanner {
         reviewOverdue: Bool,
         ignored: Set<String> = [],
     ) -> [NotificationConflict] {
-        let active = snapshot.tasks.filter { !$0.isCompleted && $0.due != nil }
+        // Completion suppresses delivery, not the user's clock time or per-task
+        // switch. Keep those preferences available if the task is reopened.
+        let datedTasks = snapshot.tasks.filter { $0.due != nil }
         // A successful insert attaches a remote ID while retaining the local UI ID.
         // Transfer custom clock times and per-task switches before pruning stale keys.
-        for task in active where task.remoteID != nil && task.remoteID != task.id {
+        for task in datedTasks where task.remoteID != nil && task.remoteID != task.id {
             var localTask = task
             localTask.remoteID = nil
             let localKey = key(task: localTask, scope: scope)
@@ -152,11 +154,11 @@ enum NotificationPlanner {
                 preferences.records[remoteKey] = record
             }
         }
-        let keys = Set(active.map { key(task: $0, scope: scope) })
+        let keys = Set(datedTasks.map { key(task: $0, scope: scope) })
         preferences.records = preferences.records.filter { !$0.key.hasPrefix(scope + ".") || keys.contains($0.key) }
         var conflicts: [NotificationConflict] = []
         let calendar = Calendar(identifier: .gregorian)
-        for task in active {
+        for task in datedTasks where !task.isCompleted {
             guard let due = task.due else { continue }
             let key = key(task: task, scope: scope)
             if var record = preferences.records[key] {
@@ -198,7 +200,7 @@ enum NotificationPlanner {
             guard !task.isCompleted, task.due != nil, let record = preferences.records[key],
                   record.isEnabled, record.date > now else { return nil }
             return ScheduledTaskNotification(
-                id: "greminder.task." + key,
+                id: NotificationRouting.taskPrefix + key,
                 title: task.title,
                 listTitle: snapshot.lists.first { $0.id == task.listID }?.title ?? L10n.tr("タスク"),
                 date: record.date,
@@ -209,6 +211,7 @@ enum NotificationPlanner {
 
 struct NotificationClient: Sendable {
     var load: @Sendable () async throws -> NotificationPreferences
+    var savePreferences: @Sendable (NotificationPreferences) async throws -> NotificationReport
     var saveAndSchedule: @Sendable (NotificationPreferences, [ScheduledTaskNotification]) async throws
         -> NotificationReport
     var requestAccess: @Sendable () async throws -> NotificationAccess
@@ -217,11 +220,15 @@ struct NotificationClient: Sendable {
 extension NotificationClient: DependencyKey {
     static let liveValue = Self(
         load: { try await LocalNotificationSystem.shared.load() },
+        savePreferences: {
+            try await LocalNotificationSystem.shared.enqueue($0, requests: $0.enabled ? nil : [])
+        },
         saveAndSchedule: { try await LocalNotificationSystem.shared.enqueue($0, requests: $1) },
         requestAccess: { try await LocalNotificationSystem.shared.requestAccess() },
     )
     static let testValue = Self(
         load: { NotificationPreferences() },
+        savePreferences: { _ in NotificationReport(access: .notDetermined) },
         saveAndSchedule: { _, requests in NotificationReport(access: .notDetermined, scheduled: requests.count) },
         requestAccess: { .denied },
     )
@@ -263,7 +270,7 @@ final class LocalNotificationSystem: NSObject, UNUserNotificationCenterDelegate 
     // A serial task chain prevents an older asynchronous OS update from winning a race.
     func enqueue(
         _ preferences: NotificationPreferences,
-        requests: [ScheduledTaskNotification],
+        requests: [ScheduledTaskNotification]?,
     ) async throws -> NotificationReport {
         let previous = tail
         let task = Task { @MainActor in
@@ -271,10 +278,18 @@ final class LocalNotificationSystem: NSObject, UNUserNotificationCenterDelegate 
             try UserDefaults.standard.set(JSONEncoder().encode(preferences), forKey: preferencesKey)
             let access = await self.access()
             let pending = await self.center.pendingNotificationRequests()
+            // No snapshot has arrived yet. Persist settings while keeping the OS
+            // schedule intact; an explicit disable still passes an empty array.
+            guard let requests else {
+                return NotificationReport(
+                    access: access,
+                    scheduled: pending.count(where: { $0.identifier.hasPrefix(NotificationRouting.taskPrefix) }),
+                )
+            }
             let desired = access == .authorized ? Array(requests.prefix(60)) : []
             let desiredIDs = Set(desired.map(\.id))
             self.cancelRequests(withIdentifiers: pending.map(\.identifier)
-                .filter { $0.hasPrefix("greminder.task.") && !desiredIDs.contains($0) })
+                .filter { $0.hasPrefix(NotificationRouting.taskPrefix) && !desiredIDs.contains($0) })
             for request in desired {
                 try await self.schedule(request)
             }
