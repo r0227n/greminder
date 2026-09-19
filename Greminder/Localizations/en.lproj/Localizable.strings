@@ -321,3 +321,9 @@
 "ログアウト" = "Sign out";
 "編集中・保存中の操作を完了してからアカウントを変更してください。" = "Finish editing and saving before changing accounts.";
 "必要なモデルをダウンロードして読み込んでいます。初回は時間がかかる場合があります。" = "Downloading and loading the required model. Initial setup may take some time.";
+"サンプル" = "Sample";
+"共有ToDoの保存先リストが見つかりません。元のアカウントとリストを確認してください。" = "The destination list for a shared ToDo is missing. Check the original account and list.";
+"共有ToDoの入力内容を確認してください。" = "Check the shared ToDo content.";
+"共有ToDoの同期結果を確認できません。Google Tasksで重複がないことを確認してから再試行するか、このToDoを削除してください。" = "The shared ToDo sync result is unknown. Check Google Tasks for duplicates before retrying, or delete this ToDo.";
+"共有ToDoを読み込めませんでした。\n%@" = "Could not load shared ToDos.\n%@";
+"共有ToDoの保存状態を更新できませんでした。\n%@" = "Could not update the shared ToDo save status.\n%@";

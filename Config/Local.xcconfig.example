@@ -4,6 +4,12 @@
 // クライアントシークレット、API キー、アクセストークンは入力不要です。
 // 詳しい設定手順: docs/google-setup.md
 
+// 【Apple開発署名】
+// XcodeのSigning & Capabilitiesで選択するTeamのID（10桁）を指定します。
+// 本体とShare Extensionで共通利用し、xcodegen再生成後も維持されます。
+// 例: DEVELOPMENT_TEAM = ABCDE12345
+// DEVELOPMENT_TEAM =
+
 // 【iOS 用】
 // Google Cloud の OAuth クライアント設定で、iOS アプリの Bundle ID に対応する
 // クライアント ID を確認してください（既定の Bundle ID: com.example.greminder.ios）。

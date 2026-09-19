@@ -1,5 +1,7 @@
 included:
   - Greminder
+  - ShareSupport
+  - ShareExtension
   - Tests
   - iOSTests
   - Packages/LocalLLM/Sources
