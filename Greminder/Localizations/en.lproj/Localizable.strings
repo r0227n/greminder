@@ -127,7 +127,7 @@
 "音声入力" = "Voice Input";
 "認識言語" = "Recognition Language";
 "音声モデル" = "Voice Model";
-"変更は次の音声入力から反映します。モデルごとに初回のダウンロードが必要です。" = "Changes apply the next time you use voice input. Each model requires an initial download.";
+"モデルを変更すると、必要なデータをダウンロードします。変更は次の音声入力から反映します。" = "Changing the model downloads any required data. The change applies to your next voice input.";
 "WhisperKitで端末内で文字起こしします。音声は外部へ送らず、処理後に削除します。ダウンロード済みのモデルは再利用します。" = "WhisperKit transcribes on this device. Audio is never sent to a server and is deleted after processing. Downloaded models are reused.";
 "タスクの入力" = "Entering Tasks";
 "余白をダブルクリック、または ⌘N で新規入力。Enterで保存して次の行へ。空欄のEnter、またはEscで入力を終了します。" = "Double-click an empty area or press ⌘N to add a task. Press Return to save and continue on the next row. Press Return on an empty row, or Escape, to finish.";
@@ -320,3 +320,4 @@
 "ログインしていません" = "Not signed in";
 "ログアウト" = "Sign out";
 "編集中・保存中の操作を完了してからアカウントを変更してください。" = "Finish editing and saving before changing accounts.";
+"必要なモデルをダウンロードして読み込んでいます。初回は時間がかかる場合があります。" = "Downloading and loading the required model. Initial setup may take some time.";

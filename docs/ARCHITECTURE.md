@@ -207,7 +207,7 @@ AIはReducerへ提案を返すだけで、適用には画面上の操作が必�
 
 `VoiceFeature`はidle → preparing → ready → requestingPermission → recording → transcribing → reviewを管理する。モデル準備時にセッションUUIDを生成し、準備完了・録音開始・文字起こし結果を同じIDで照合する。readyやreviewでもIDを保持し、閉じる操作でそのセッションだけ解放する。TCAのキャンセルIDは`work(UUID)`と`timer(UUID)`で、別StoreのEffectを同じ固定IDで取り消さない。`SpeechClient.maximumRecordingSeconds`をReducerのタイマーとAVAudioRecorderの両方で参照する。バックグラウンド移行はルートからキャンセルする。
 
-`SpeechSettingsFeature`はCodableの`SpeechPreferences`をUserDefaultsの`greminder.speech.v1`へ保存する。モデルと言語は型付きenum。Large v3 Turboは公式配布の`openai_whisper-large-v3-v20240930_626MB`を使用する。次の音声シートを開く際に値をコピーし、そのセッション内で固定する。WhisperKitの`DecodingOptions`へ言語コードを渡し、自動判定ではlanguage=nil / detectLanguage=trueにする。Whisperの既定値では自動判定が有効にならないため、明示指定する。
+`SpeechSettingsFeature`はCodableの`SpeechPreferences`をUserDefaultsの`greminder.speech.v1`へ保存する。モデルと言語は型付きenum。Large v3 Turboは公式配布の`openai_whisper-large-v3-v20240930_626MB`を使用する。モデル変更時は一時的な音声セッションで`SpeechClient.prepare`を呼び、取得・読み込み中は共通の`LoadingView`を設定画面に重ねて表示する。準備後はセッションを解放してパイプラインを保持し、成功時のみ選択設定を保存する。失敗時は元の選択と再試行可能なエラーを残す。次の音声シートを開く際に値をコピーし、そのセッション内で固定する。WhisperKitの`DecodingOptions`へ言語コードを渡し、自動判定ではlanguage=nil / detectLanguage=trueにする。Whisperの既定値では自動判定が有効にならないため、明示指定する。
 
 `WhisperSpeechEngine`はMainActorでマイクとパイプラインを所有する。`prepare(preferences, sessionID:)`で設定をセッションに固定し、別セッションによるモデル・言語の上書きを拒否する。キャンセルは具体的な所有IDを必要とし、準備していない画面や無関係なIDからの操作では別の処理を止めない。モデル名とパイプラインは`PreparedModel`へまとめて保持する。
 

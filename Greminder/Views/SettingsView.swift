@@ -62,14 +62,14 @@ struct SettingsView: View {
                         ForEach(SpeechLanguage.allCases) { Text($0.label).tag($0) }
                     }.accessibilityIdentifier("speech-language")
                     Picker(L10n.tr("音声モデル"), selection: Binding(
-                        get: { store.speechSettings.preferences.model },
+                        get: { store.speechSettings.downloadingModel ?? store.speechSettings.preferences.model },
                         set: { store.send(.speechSettings(.modelChanged($0))) },
                     )) {
                         ForEach(SpeechModel.allCases) { Text($0.label).tag($0) }
                     }.accessibilityIdentifier("speech-model")
                     Text(store.speechSettings.preferences.model.detail)
                         .font(.caption).foregroundStyle(.secondary)
-                    Text(L10n.tr("変更は次の音声入力から反映します。モデルごとに初回のダウンロードが必要です。"))
+                    Text(L10n.tr("モデルを変更すると、必要なデータをダウンロードします。変更は次の音声入力から反映します。"))
                         .font(.caption).foregroundStyle(.secondary)
                     Text(L10n.tr("WhisperKitで端末内で文字起こしします。音声は外部へ送らず、処理後に削除します。ダウンロード済みのモデルは再利用します。"))
                         .font(.caption).foregroundStyle(.secondary)
@@ -88,8 +88,14 @@ struct SettingsView: View {
             .navigationTitle(L10n.tr("設定"))
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button(L10n.tr("完了")) { dismiss() } } }
         }
+        .loadingOverlay(
+            isPresented: store.speechSettings.isDownloading,
+            title: L10n.tr("音声モデルを準備中…"),
+            message: L10n.tr("必要なモデルをダウンロードして読み込んでいます。初回は時間がかかる場合があります。"),
+        )
+        .interactiveDismissDisabled(store.speechSettings.isDownloading)
         #if os(macOS)
-        .frame(width: 540, height: 570)
+            .frame(width: 540, height: 570)
         #endif
     }
 }

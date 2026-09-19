@@ -145,7 +145,7 @@ Googleの`due`は日付として扱う。時刻、場所、タグ、繰り返し
 | 認識言語 | 自動判定、日本語、英語、中国語、韓国語、フランス語、ドイツ語、スペイン語、イタリア語、ポルトガル語 |
 | 音声モデル | Tiny（軽量）、Base（標準）、Small（精度優先）、Large v3 Turbo（圧縮版、約626 MB） |
 
-すべて多言語モデルを使用する。Large v3 Turboは[WhisperKit公式の対応表](https://github.com/argmaxinc/argmax-oss-swift#model-selection)にあるiOS / macOS共通の圧縮版`openai_whisper-large-v3-v20240930_626MB`を選択する。言語の固定はWhisperのデコード言語指定、自動判定は`detectLanguage = true`で行い、翻訳はしない。モデルごとに最初の準備時だけモデルとトークナイザーを取得し、Application Supportへキャッシュする。準備済みのモデルはオフラインで利用できる。大きいモデルほどメモリ・ディスク容量を要し、速度と精度はデバイスや音声に依存する。
+すべて多言語モデルを使用する。Large v3 Turboは[WhisperKit公式の対応表](https://github.com/argmaxinc/argmax-oss-swift#model-selection)にあるiOS / macOS共通の圧縮版`openai_whisper-large-v3-v20240930_626MB`を選択する。言語の固定はWhisperのデコード言語指定、自動判定は`detectLanguage = true`で行い、翻訳はしない。設定画面でモデルを変更した時にモデルとトークナイザーを取得・読み込みし、Application Supportへキャッシュする。取得済みのデータは再利用する。処理中は共通ローディングUIを表示し、成功後に選択設定を保存する。失敗時は元の選択を維持し、再度選択して再試行できる。初期モデルなど未準備のモデルは音声入力画面からも準備できる。準備済みのモデルはオフラインで利用できる。大きいモデルほどメモリ・ディスク容量を要し、速度と精度はデバイスや音声に依存する。
 
 準備開始、モデル取得後の読み込み前、録音開始前、文字起こし前にモデル保存先ボリュームの空き容量を確認する。Large v3 TurboはSimulatorで8 GB、実機・ネイティブMacで2 GBを実行許可の下限とする。これらは作業領域を残すための保守的な設定で、必要量の実測値や動作保証値ではない。モデル本体の約626 MBに加え、Core MLのコンパイルキャッシュが増える。容量不足または容量取得不能では、モデル処理を開始せず理由と再試行方法を表示する。[Simulatorクラッシュ調査](diagnostics/large-v3-turbo-simulator.md)を参照。
 

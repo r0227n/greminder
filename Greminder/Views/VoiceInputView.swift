@@ -30,9 +30,10 @@ struct VoiceInputView: View {
                             .font(.caption).foregroundStyle(.secondary)
                         Button(L10n.tr("音声モデルを準備")) { store.send(.prepare) }.buttonStyle(.borderedProminent)
                     case .preparing:
-                        ProgressView(L10n.tr("音声モデルを準備中…")).frame(maxWidth: .infinity)
-                        Text(L10n.tr("初回はダウンロードと読み込みに時間がかかります。"))
-                            .font(.caption).foregroundStyle(.secondary)
+                        LoadingView(
+                            title: L10n.tr("音声モデルを準備中…"),
+                            message: L10n.tr("初回はダウンロードと読み込みに時間がかかります。"),
+                        )
                     case .ready:
                         Button(L10n.tr("録音を開始"), systemImage: "mic.fill") { store.send(.record) }
                             .buttonStyle(.borderedProminent)
