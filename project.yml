@@ -26,6 +26,10 @@ targets:
       - Greminder/App
       - path: Greminder/Resources/AppLocalizations
         buildPhase: resources
+      - path: Greminder/Resources/AppIcon.icon
+        type: file
+        fileType: folder.iconcomposer.icon
+        buildPhase: resources
     dependencies:
       - package: GreminderKit
       - target: Greminder-Share-iOS
@@ -42,6 +46,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.greminder.ios
         PRODUCT_NAME: greminder
         PRODUCT_MODULE_NAME: Greminder
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1,2"
     info:
       path: Greminder/Resources/iOS-Info.plist
@@ -63,6 +68,10 @@ targets:
       - Greminder/App
       - path: Greminder/Resources/AppLocalizations
         buildPhase: resources
+      - path: Greminder/Resources/AppIcon.icon
+        type: file
+        fileType: folder.iconcomposer.icon
+        buildPhase: resources
     dependencies:
       - package: GreminderKit
       - target: Greminder-Share-macOS
@@ -83,6 +92,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.greminder.macos
         PRODUCT_NAME: greminder
         PRODUCT_MODULE_NAME: Greminder
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_APP_SANDBOX: YES
         ENABLE_OUTGOING_NETWORK_CONNECTIONS: YES
     info:

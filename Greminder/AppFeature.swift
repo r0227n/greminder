@@ -135,6 +135,7 @@ struct AppFeature {
         case toggleComplete(String)
         case toggleChildren(String)
         case requestDelete(String)
+        case swipeDelete(String)
         case confirmDelete
         case processQueue
         case writeFinished(UUID, Result<ReminderTask, AppFailure>)
@@ -415,10 +416,20 @@ struct AppFeature {
                 guard !state.isLoading, !state.showsVoice else { return .none }
                 state.deleteCandidate = state.snapshot.tasks.first { $0.id == id }
                 return .none
-            case .confirmDelete:
-                guard !state.isLoading, !state.showsVoice, let candidate = state.deleteCandidate else { return .none }
+            case .swipeDelete, .confirmDelete:
+                guard !state.isLoading, !state.showsVoice else { return .none }
+                let taskID: String
+                if case let .swipeDelete(id) = action {
+                    taskID = id
+                } else if let candidate = state.deleteCandidate {
+                    taskID = candidate.id
+                } else {
+                    return .none
+                }
+                guard let task = state.snapshot.tasks.first(where: { $0.id == taskID }) else { return .none }
+                // Swipe actions already express the deletion intent; use the same queue and
+                // descendant cleanup as confirmed deletion without presenting another dialog.
                 state.deleteCandidate = nil
-                guard let task = state.snapshot.tasks.first(where: { $0.id == candidate.id }) else { return .none }
                 let removedIDs = state.snapshot.descendantIDs(of: task.id)
                 let previousHead = state.pending.first?.id
                 let inFlightID = state.isSaving ? previousHead : nil
