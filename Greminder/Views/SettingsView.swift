@@ -90,8 +90,9 @@ struct SettingsView: View {
         }
         .loadingOverlay(
             isPresented: store.speechSettings.isDownloading,
-            title: L10n.tr("音声モデルを準備中…"),
+            title: L10n.tr("準備中"),
             message: L10n.tr("必要なモデルをダウンロードして読み込んでいます。初回は時間がかかる場合があります。"),
+            completionTitle: store.speechSettings.error == nil ? L10n.tr("準備完了") : nil,
         )
         .interactiveDismissDisabled(store.speechSettings.isDownloading)
         #if os(macOS)

@@ -327,3 +327,5 @@
 "共有ToDoの同期結果を確認できません。Google Tasksで重複がないことを確認してから再試行するか、このToDoを削除してください。" = "The shared ToDo sync result is unknown. Check Google Tasks for duplicates before retrying, or delete this ToDo.";
 "共有ToDoを読み込めませんでした。\n%@" = "Could not load shared ToDos.\n%@";
 "共有ToDoの保存状態を更新できませんでした。\n%@" = "Could not update the shared ToDo save status.\n%@";
+"準備中" = "Preparing";
+"準備完了" = "Ready";
